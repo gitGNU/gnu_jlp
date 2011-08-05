@@ -1,0 +1,2 @@
+loc="/home/olivier/Logiciels/Dropbox/Recherche/Decision Deck/Programmation/J-MCDA/SharedProfiles/target/SharedProfiles-0.5-SNAPSHOT/lib"
+mvn install:install-file -Dfile="$loc/cplex-concert-12.2.jar" -DgroupId=com.ilog -DartifactId=cplex-concert -Dversion=12.2 -DgeneratePom=true -Dpackaging=jar
