@@ -18,5 +18,5 @@
 package org.decisiondeck.jlp.parameters;
 
 public enum LpTimingType {
-    WALL_TIMING, CPU_TIMING
+    CPU_TIMING, WALL_TIMING
 }

@@ -26,16 +26,28 @@ package org.decisiondeck.jlp;
 public enum LpOperator {
 
     /**
-     * Less or equal
-     */
-    LE, /**
      * Equal
      */
-    EQ,
-    /**
+    EQ, /**
      * Greater or equal
      */
-    GE;
+    GE,
+    /**
+     * Less or equal
+     */
+    LE;
+
+    public String toAsciiString() {
+	switch (this) {
+	case LE:
+	    return "<=";
+	case GE:
+	    return ">=";
+	case EQ:
+	    return "=";
+	}
+	throw new IllegalStateException("Unknown operator.");
+    }
 
     @Override
     public String toString() {
@@ -44,18 +56,6 @@ public enum LpOperator {
 	    return "" + '\u2264';
 	case GE:
 	    return "" + '\u2265';
-	case EQ:
-	    return "=";
-	}
-	throw new IllegalStateException("Unknown operator.");
-    }
-
-    public String toAsciiString() {
-	switch (this) {
-	case LE:
-	    return "<=";
-	case GE:
-	    return ">=";
 	case EQ:
 	    return "=";
 	}

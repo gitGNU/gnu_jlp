@@ -33,22 +33,20 @@ import com.google.common.base.Preconditions;
 public class LpTerm<T> {
     private final double m_coefficient;
 
-    /**
-     * Retrieves the coefficient that multiplies the variable in this term.
-     * 
-     * @return a valid number.
-     */
-    public double getCoefficient() {
-	return m_coefficient;
-    }
+    private final T m_variable;
 
     /**
-     * Retrieves the variable of this term.
-     * 
-     * @return not <code>null</code>.
+     * @param coefficient
+     *            a valid number.
+     * @param variable
+     *            not <code>null</code>.
      */
-    public T getVariable() {
-	return m_variable;
+    public LpTerm(double coefficient, T variable) {
+	Preconditions.checkNotNull(variable);
+	Preconditions.checkArgument(!Double.isInfinite(coefficient));
+	Preconditions.checkArgument(!Double.isNaN(coefficient));
+	m_coefficient = coefficient;
+	m_variable = variable;
     }
 
     @Override
@@ -71,6 +69,24 @@ public class LpTerm<T> {
 	return true;
     }
 
+    /**
+     * Retrieves the coefficient that multiplies the variable in this term.
+     * 
+     * @return a valid number.
+     */
+    public double getCoefficient() {
+	return m_coefficient;
+    }
+
+    /**
+     * Retrieves the variable of this term.
+     * 
+     * @return not <code>null</code>.
+     */
+    public T getVariable() {
+	return m_variable;
+    }
+
     @Override
     public int hashCode() {
 	final int prime = 31;
@@ -88,20 +104,4 @@ public class LpTerm<T> {
 	helper.addValue(getCoefficient() + "*" + getVariable());
 	return helper.toString();
     }
-
-    /**
-     * @param coefficient
-     *            a valid number.
-     * @param variable
-     *            not <code>null</code>.
-     */
-    public LpTerm(double coefficient, T variable) {
-	Preconditions.checkNotNull(variable);
-	Preconditions.checkArgument(!Double.isInfinite(coefficient));
-	Preconditions.checkArgument(!Double.isNaN(coefficient));
-	m_coefficient = coefficient;
-	m_variable = variable;
-    }
-
-    private final T m_variable;
 }

@@ -46,63 +46,15 @@ import com.google.common.base.Preconditions;
  *            the class used for the variables.
  */
 public class LpConstraint<T> {
+    private final LpLinearImmutable<T> m_lhs;
+
     /**
      * Never <code>null</code>, empty if not set.
      */
     private final String m_name;
 
-    /**
-     * Retrieves the name of the problem.
-     * 
-     * @return never <code>null</code>, empty if not set.
-     */
-    public String getName() {
-	return m_name;
-    }
-
-    /**
-     * @return not <code>null</code>, not empty.
-     */
-    public LpLinear<T> getLhs() {
-	return m_lhs;
-    }
-
-    /**
-     * @return the op
-     */
-    public LpOperator getOperator() {
-	return m_op;
-    }
-
-    /**
-     * @return the rhs
-     */
-    public double getRhs() {
-	return m_rhs;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-	if (!(obj instanceof LpConstraint)) {
-	    return false;
-	}
-	LpConstraint<?> c2 = (LpConstraint<?>) obj;
-	return LpSolverUtils.equivalent(this, c2);
-    }
-
-    @Override
-    public int hashCode() {
-	final Equivalence<LpConstraint<T>> equivalence = LpSolverUtils.getConstraintEquivalence();
-	return equivalence.hash(this);
-    }
-
-    @Override
-    public String toString() {
-	return LpSolverUtils.getAsString(this);
-    }
-
-    private final LpLinearImmutable<T> m_lhs;
     private final LpOperator m_op;
+
     private final double m_rhs;
 
     /**
@@ -125,5 +77,55 @@ public class LpConstraint<T> {
 	m_lhs = new LpLinearImmutable<T>(lhs);
 	m_op = op;
 	m_rhs = rhs;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+	if (!(obj instanceof LpConstraint)) {
+	    return false;
+	}
+	LpConstraint<?> c2 = (LpConstraint<?>) obj;
+	return LpSolverUtils.equivalent(this, c2);
+    }
+
+    /**
+     * @return not <code>null</code>, not empty.
+     */
+    public LpLinear<T> getLhs() {
+	return m_lhs;
+    }
+
+    /**
+     * Retrieves the name of the problem.
+     * 
+     * @return never <code>null</code>, empty if not set.
+     */
+    public String getName() {
+	return m_name;
+    }
+
+    /**
+     * @return the op
+     */
+    public LpOperator getOperator() {
+	return m_op;
+    }
+
+    /**
+     * @return the rhs
+     */
+    public double getRhs() {
+	return m_rhs;
+    }
+
+    @Override
+    public int hashCode() {
+	final Equivalence<LpConstraint<T>> equivalence = LpSolverUtils.getConstraintEquivalence();
+	return equivalence.hash(this);
+    }
+
+    @Override
+    public String toString() {
+	return LpSolverUtils.getAsString(this);
     }
 }

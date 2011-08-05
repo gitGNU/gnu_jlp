@@ -60,37 +60,16 @@ import com.google.common.collect.Iterables;
  */
 public class LpVariable<T> {
 
-    /** Does not contain <code>null</code>. */
-    private final List<Object> m_refs;
+    /** Not <code>null</code>. */
+    private final T m_category;
 
     /**
      * May be <code>null</code> (no manual description, switch to automatic), may be empty (an empty description).
      */
     private String m_descr;
 
-    /**
-     * Retrieves the string set as a description of this object.
-     * 
-     * @return may be <code>null</code>, but not empty.
-     */
-    public String getDescription() {
-	return m_descr;
-    }
-
-    /**
-     * Sets the description to be used for this variable by the {@link #toString()} method. An empty string is accepted
-     * and will produce an empty answer by the {@link #toString()} method. It is recommended to avoid empty strings and
-     * strings empty after {@link String#trim()}ming.
-     * 
-     * @param description
-     *            <code>null</code> to remove the manual description (use automatic description).
-     */
-    public void setDescription(String description) {
-	m_descr = description;
-    }
-
-    /** Not <code>null</code>. */
-    private final T m_category;
+    /** Does not contain <code>null</code>. */
+    private final List<Object> m_refs;
 
     /**
      * Builds a variable of the given category and with the provided references.
@@ -110,30 +89,6 @@ public class LpVariable<T> {
 	}
 	m_category = category;
 	m_refs = Collections.unmodifiableList(new ArrayList<Object>(asList));
-    }
-
-    @Override
-    public int hashCode() {
-	final int prime = 31;
-	int result = 1;
-	result = prime * result + (m_category.hashCode());
-	result = prime * result + (m_refs.hashCode());
-	return result;
-    }
-
-    /**
-     * Returns a string description of this variable, using the description set by {@link #setDescription(String)} if it
-     * is not <code>null</code> or auto-generated from the category and the references otherwise.
-     */
-    @Override
-    public String toString() {
-	if (m_descr != null) {
-	    return m_descr;
-	}
-	final ToStringHelper stringHelper = Objects.toStringHelper(this);
-	stringHelper.add("Category", m_category);
-	stringHelper.add("References", Arrays.toString(m_refs.toArray()));
-	return stringHelper.toString();
     }
 
     @Override
@@ -158,6 +113,22 @@ public class LpVariable<T> {
     }
 
     /**
+     * @return not <code>null</code>.
+     */
+    public T getCategory() {
+	return m_category;
+    }
+
+    /**
+     * Retrieves the string set as a description of this object.
+     * 
+     * @return may be <code>null</code>, but not empty.
+     */
+    public String getDescription() {
+	return m_descr;
+    }
+
+    /**
      * Retrieves a copy, or read-only view, of the references associated to the variable.
      * 
      * @return not <code>null</code>, may be empty. Contain no <code>null</code> references.
@@ -166,11 +137,40 @@ public class LpVariable<T> {
 	return m_refs;
     }
 
+    @Override
+    public int hashCode() {
+	final int prime = 31;
+	int result = 1;
+	result = prime * result + (m_category.hashCode());
+	result = prime * result + (m_refs.hashCode());
+	return result;
+    }
+
     /**
-     * @return not <code>null</code>.
+     * Sets the description to be used for this variable by the {@link #toString()} method. An empty string is accepted
+     * and will produce an empty answer by the {@link #toString()} method. It is recommended to avoid empty strings and
+     * strings empty after {@link String#trim()}ming.
+     * 
+     * @param description
+     *            <code>null</code> to remove the manual description (use automatic description).
      */
-    public T getCategory() {
-	return m_category;
+    public void setDescription(String description) {
+	m_descr = description;
+    }
+
+    /**
+     * Returns a string description of this variable, using the description set by {@link #setDescription(String)} if it
+     * is not <code>null</code> or auto-generated from the category and the references otherwise.
+     */
+    @Override
+    public String toString() {
+	if (m_descr != null) {
+	    return m_descr;
+	}
+	final ToStringHelper stringHelper = Objects.toStringHelper(this);
+	stringHelper.add("Category", m_category);
+	stringHelper.add("References", Arrays.toString(m_refs.toArray()));
+	return stringHelper.toString();
     }
 
 }

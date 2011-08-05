@@ -69,7 +69,15 @@ import com.google.common.collect.ImmutableBiMap.Builder;
  * 
  */
 public class SolverCPLEX<T> extends AbstractLpSolver<T> {
+    private static final int CPLEX_CLOCK_TYPE_CPU = 1;
+
+    private static final int CPLEX_CLOCK_TYPE_WALL = 2;
+
     private static final Logger s_logger = LoggerFactory.getLogger(SolverCPLEX.class);
+
+    private IloCplex m_cplex;
+
+    private BiMap<T, IloNumVar> m_variablesToCplex;
 
     /**
      * Creates a new solver instance.
@@ -77,6 +85,14 @@ public class SolverCPLEX<T> extends AbstractLpSolver<T> {
     public SolverCPLEX() {
 	m_cplex = null;
 	m_variablesToCplex = null;
+    }
+
+    @Override
+    public void close() throws LpSolverException {
+	if (m_cplex != null) {
+	    m_cplex.end();
+	    m_cplex = null;
+	}
     }
 
     private void exportModel(String file) throws LpSolverException {
@@ -89,6 +105,19 @@ public class SolverCPLEX<T> extends AbstractLpSolver<T> {
 	    logContent(m_cplex);
 	    throw exc2;
 	}
+    }
+
+    private IloLinearNumExpr getAsCplex(LpLinear<T> linear) throws IloException {
+	IloLinearNumExpr lin = m_cplex.linearNumExpr();
+	for (LpTerm<T> term : linear) {
+	    lin.addTerm(term.getCoefficient(), m_variablesToCplex.get(term.getVariable()));
+	}
+	return lin;
+    }
+
+    @Override
+    public LpFileFormat getPreferredFormat() throws LpSolverException {
+	return null;
     }
 
     /**
@@ -140,244 +169,6 @@ public class SolverCPLEX<T> extends AbstractLpSolver<T> {
 	    }
 	}
 	return resultStatus;
-    }
-
-    private static final int CPLEX_CLOCK_TYPE_CPU = 1;
-    private static final int CPLEX_CLOCK_TYPE_WALL = 2;
-
-    private IloCplex m_cplex;
-
-    private BiMap<T, IloNumVar> m_variablesToCplex;
-
-    /**
-     * Initializes the parameters, including logging parameters, of the given solver instance to appropriate values
-     * considering the parameters set in this object, or to default values.
-     * 
-     * @param cplex
-     *            not <code>null</code>.
-     * @throws LpSolverException
-     *             if an exception occurs while setting the parameters, or if some parameters have values that are
-     *             impossible to satisfy (e.g. if both cpu and wall timings are set).
-     */
-    public void setParameters(IloCplex cplex) throws LpSolverException {
-	setDefaultParameters(cplex);
-
-	final LpTimingType timingType = getPreferredTimingType();
-
-	final int clockType;
-	switch (timingType) {
-	case WALL_TIMING:
-	    clockType = CPLEX_CLOCK_TYPE_WALL;
-	    break;
-	case CPU_TIMING:
-	    clockType = CPLEX_CLOCK_TYPE_CPU;
-	    break;
-	default:
-	    throw new IllegalStateException("Unknown timing type.");
-	}
-	setParam(cplex, IntParam.ClockType, clockType);
-
-	final Double timeLimit_s = getTimeLimit(timingType);
-	if (timeLimit_s != null) {
-	    setParam(cplex, DoubleParam.TiLim, timeLimit_s.doubleValue());
-	}
-
-	final Integer maxThreads = getParameter(LpIntParameter.MAX_THREADS);
-	final int maxThreadsValue;
-	if (maxThreads == null) {
-	    maxThreadsValue = 0;
-	} else {
-	    maxThreadsValue = maxThreads.intValue();
-	}
-	setParam(cplex, IntParam.Threads, maxThreadsValue);
-
-	if (getParameter(LpDoubleParameter.MAX_TREE_SIZE_MB) != null) {
-	    setParam(cplex, DoubleParam.TreLim, getParameter(LpDoubleParameter.MAX_TREE_SIZE_MB).doubleValue());
-	}
-
-	if (getParameter(LpStringParameter.WORK_DIR) != null) {
-	    setParam(cplex, StringParam.WorkDir, getParameter(LpStringParameter.WORK_DIR));
-	}
-
-	final int mode;
-	if (getParameter(LpIntParameter.DETERMINISTIC).intValue() == 0) {
-	    mode = ParallelMode.Opportunistic;
-	} else {
-	    mode = ParallelMode.Deterministic;
-	}
-	setParam(cplex, IntParam.ParallelMode, mode);
-
-	m_cplex.setOut(new CplexLogger(CplexLogger.OutLevel.INFO));
-	m_cplex.setWarning(new CplexLogger(CplexLogger.OutLevel.WARNING));
-    }
-
-    /**
-     * Sets the parameter and transform a possible {@link IloException} into an {@link LpSolverException}.
-     * 
-     * @param cplex
-     *            not <code>null</code>.
-     * @param param
-     *            not <code>null</code>.
-     * @param value
-     *            the value.
-     * @throws LpSolverException
-     *             if an {@link IloException} occurs while setting the parameter.
-     */
-    public void setParam(IloCplex cplex, final DoubleParam param, final double value) throws LpSolverException {
-	Preconditions.checkNotNull(cplex);
-	Preconditions.checkNotNull(param);
-	try {
-	    cplex.setParam(param, value);
-	} catch (IloException exc) {
-	    throw new LpSolverException(exc);
-	}
-    }
-
-    private void setDefaultParameters(IloCplex cplex) throws LpSolverException {
-	try {
-	    final int writeNodesToDisk = 2;
-	    cplex.setParam(IntParam.NodeFileInd, writeNodesToDisk);
-	} catch (IloException exc) {
-	    throw new LpSolverException(exc);
-	}
-    }
-
-    private IloLinearNumExpr getAsCplex(LpLinear<T> linear) throws IloException {
-	IloLinearNumExpr lin = m_cplex.linearNumExpr();
-	for (LpTerm<T> term : linear) {
-	    lin.addTerm(term.getCoefficient(), m_variablesToCplex.get(term.getVariable()));
-	}
-	return lin;
-    }
-
-    /**
-     * Sets the parameter and transform a possible {@link IloException} into an {@link LpSolverException}.
-     * 
-     * @param cplex
-     *            not <code>null</code>.
-     * @param param
-     *            not <code>null</code>.
-     * @param value
-     *            the value.
-     * @throws LpSolverException
-     *             if an {@link IloException} occurs while setting the parameter.
-     */
-    public void setParam(IloCplex cplex, final StringParam param, final String value) throws LpSolverException {
-	Preconditions.checkNotNull(cplex);
-	Preconditions.checkNotNull(param);
-	try {
-	    cplex.setParam(param, value);
-	} catch (IloException exc) {
-	    throw new LpSolverException(exc);
-	}
-    }
-
-    /**
-     * Sets the parameter and transform a possible {@link IloException} into an {@link LpSolverException}.
-     * 
-     * @param cplex
-     *            not <code>null</code>.
-     * @param param
-     *            not <code>null</code>.
-     * @param value
-     *            the value.
-     * @throws LpSolverException
-     *             if an {@link IloException} occurs while setting the parameter.
-     */
-    public void setParam(IloCplex cplex, final IntParam param, final int value) throws LpSolverException {
-	Preconditions.checkNotNull(cplex);
-	Preconditions.checkNotNull(param);
-	try {
-	    cplex.setParam(param, value);
-	} catch (IloException exc) {
-	    throw new LpSolverException(exc);
-	}
-    }
-
-    /**
-     * A method useful for debug which logs everly information that can be found in the given solver instance.
-     * 
-     * @param cplex
-     *            not <code>null</code>.
-     */
-    public void logContent(IloCplex cplex) {
-	Preconditions.checkNotNull(cplex);
-	try {
-	    for (Iterator<?> iterator = cplex.iterator(); iterator.hasNext();) {
-		final Object obj = iterator.next();
-		if (obj instanceof IloLPMatrix) {
-		    IloLPMatrix mat = (IloLPMatrix) obj;
-		    final IloNumVar[] numVars = mat.getNumVars();
-		    for (int i = 0; i < numVars.length; i++) {
-			final IloNumVar var = numVars[i];
-			final double value;
-			try {
-			    value = cplex.getValue(var);
-			    s_logger.debug("Var {}, value " + value + ".", var);
-			} catch (IloException exc) {
-			    s_logger.debug("Var {}, value unknown.", var);
-			}
-		    }
-		    final IloRange[] ranges = mat.getRanges();
-		    for (int i = 0; i < ranges.length; i++) {
-			final IloRange range = ranges[i];
-			final double value;
-			try {
-			    value = cplex.getValue(range.getExpr());
-			    s_logger.debug("Range {}, value " + value + ".", range);
-			} catch (IloException exc) {
-			    s_logger.debug("Range {}, value unknown.", range);
-			}
-		    }
-		} else if (obj instanceof IloRange) {
-		    final IloRange range = (IloRange) obj;
-		    final double value;
-		    try {
-			value = cplex.getValue(range.getExpr());
-			s_logger.debug("Range {}, value " + value + ".", range);
-		    } catch (IloException exc) {
-			s_logger.debug("Range {}, value unknown.", range);
-		    }
-		    IloLinearNumExprIterator it2 = ((IloLinearNumExpr) range.getExpr()).linearIterator();
-		    while (it2.hasNext()) {
-			final IloNumVar numVar = it2.nextNumVar();
-			final double varValue;
-			try {
-			    varValue = cplex.getValue(numVar);
-			    s_logger.debug("Var {}, value " + varValue + ".", numVar);
-			} catch (IloException exc) {
-			    s_logger.debug("Var {}, value unknown.", numVar);
-			}
-			// final String name = numVar.getName();
-		    }
-		} else if (obj instanceof IloNumExpr) {
-		    IloNumExpr expr = (IloNumExpr) obj;
-		    // final double value = cplex.getValue(expr);
-		    // s_logger.info("Expr {}, value " + value + ".", expr);
-		    s_logger.debug("Expr {}.", expr);
-		}
-	    }
-	} catch (Exception exc) {
-	    s_logger.warn("Exception while trying to log content.", exc);
-	}
-    }
-
-    @Override
-    public void writeProblem(LpFileFormat format, String file, boolean addExtension) throws LpSolverException {
-	if (!addExtension) {
-	    throw new LpSolverException("Not supported without ext.");
-	}
-	switch (format) {
-	case CPLEX_LP:
-	    exportModel(file + ".lp");
-	    break;
-	case MPS:
-	    exportModel(file + ".mps");
-	    break;
-	case SOLVER_PREFERRED:
-	    exportModel(file + ".sav");
-	    break;
-	}
     }
 
     @Override
@@ -446,6 +237,209 @@ public class SolverCPLEX<T> extends AbstractLpSolver<T> {
 	}
     }
 
+    /**
+     * A method useful for debug which logs everly information that can be found in the given solver instance.
+     * 
+     * @param cplex
+     *            not <code>null</code>.
+     */
+    public void logContent(IloCplex cplex) {
+	Preconditions.checkNotNull(cplex);
+	try {
+	    for (Iterator<?> iterator = cplex.iterator(); iterator.hasNext();) {
+		final Object obj = iterator.next();
+		if (obj instanceof IloLPMatrix) {
+		    IloLPMatrix mat = (IloLPMatrix) obj;
+		    final IloNumVar[] numVars = mat.getNumVars();
+		    for (final IloNumVar var : numVars) {
+			final double value;
+			try {
+			    value = cplex.getValue(var);
+			    s_logger.debug("Var {}, value " + value + ".", var);
+			} catch (IloException exc) {
+			    s_logger.debug("Var {}, value unknown.", var);
+			}
+		    }
+		    final IloRange[] ranges = mat.getRanges();
+		    for (final IloRange range : ranges) {
+			final double value;
+			try {
+			    value = cplex.getValue(range.getExpr());
+			    s_logger.debug("Range {}, value " + value + ".", range);
+			} catch (IloException exc) {
+			    s_logger.debug("Range {}, value unknown.", range);
+			}
+		    }
+		} else if (obj instanceof IloRange) {
+		    final IloRange range = (IloRange) obj;
+		    final double value;
+		    try {
+			value = cplex.getValue(range.getExpr());
+			s_logger.debug("Range {}, value " + value + ".", range);
+		    } catch (IloException exc) {
+			s_logger.debug("Range {}, value unknown.", range);
+		    }
+		    IloLinearNumExprIterator it2 = ((IloLinearNumExpr) range.getExpr()).linearIterator();
+		    while (it2.hasNext()) {
+			final IloNumVar numVar = it2.nextNumVar();
+			final double varValue;
+			try {
+			    varValue = cplex.getValue(numVar);
+			    s_logger.debug("Var {}, value " + varValue + ".", numVar);
+			} catch (IloException exc) {
+			    s_logger.debug("Var {}, value unknown.", numVar);
+			}
+			// final String name = numVar.getName();
+		    }
+		} else if (obj instanceof IloNumExpr) {
+		    IloNumExpr expr = (IloNumExpr) obj;
+		    // final double value = cplex.getValue(expr);
+		    // s_logger.info("Expr {}, value " + value + ".", expr);
+		    s_logger.debug("Expr {}.", expr);
+		}
+	    }
+	} catch (Exception exc) {
+	    s_logger.warn("Exception while trying to log content.", exc);
+	}
+    }
+
+    private void setDefaultParameters(IloCplex cplex) throws LpSolverException {
+	try {
+	    final int writeNodesToDisk = 2;
+	    cplex.setParam(IntParam.NodeFileInd, writeNodesToDisk);
+	} catch (IloException exc) {
+	    throw new LpSolverException(exc);
+	}
+    }
+
+    /**
+     * Sets the parameter and transform a possible {@link IloException} into an {@link LpSolverException}.
+     * 
+     * @param cplex
+     *            not <code>null</code>.
+     * @param param
+     *            not <code>null</code>.
+     * @param value
+     *            the value.
+     * @throws LpSolverException
+     *             if an {@link IloException} occurs while setting the parameter.
+     */
+    public void setParam(IloCplex cplex, final DoubleParam param, final double value) throws LpSolverException {
+	Preconditions.checkNotNull(cplex);
+	Preconditions.checkNotNull(param);
+	try {
+	    cplex.setParam(param, value);
+	} catch (IloException exc) {
+	    throw new LpSolverException(exc);
+	}
+    }
+
+    /**
+     * Sets the parameter and transform a possible {@link IloException} into an {@link LpSolverException}.
+     * 
+     * @param cplex
+     *            not <code>null</code>.
+     * @param param
+     *            not <code>null</code>.
+     * @param value
+     *            the value.
+     * @throws LpSolverException
+     *             if an {@link IloException} occurs while setting the parameter.
+     */
+    public void setParam(IloCplex cplex, final IntParam param, final int value) throws LpSolverException {
+	Preconditions.checkNotNull(cplex);
+	Preconditions.checkNotNull(param);
+	try {
+	    cplex.setParam(param, value);
+	} catch (IloException exc) {
+	    throw new LpSolverException(exc);
+	}
+    }
+
+    /**
+     * Sets the parameter and transform a possible {@link IloException} into an {@link LpSolverException}.
+     * 
+     * @param cplex
+     *            not <code>null</code>.
+     * @param param
+     *            not <code>null</code>.
+     * @param value
+     *            the value.
+     * @throws LpSolverException
+     *             if an {@link IloException} occurs while setting the parameter.
+     */
+    public void setParam(IloCplex cplex, final StringParam param, final String value) throws LpSolverException {
+	Preconditions.checkNotNull(cplex);
+	Preconditions.checkNotNull(param);
+	try {
+	    cplex.setParam(param, value);
+	} catch (IloException exc) {
+	    throw new LpSolverException(exc);
+	}
+    }
+
+    /**
+     * Initializes the parameters, including logging parameters, of the given solver instance to appropriate values
+     * considering the parameters set in this object, or to default values.
+     * 
+     * @param cplex
+     *            not <code>null</code>.
+     * @throws LpSolverException
+     *             if an exception occurs while setting the parameters, or if some parameters have values that are
+     *             impossible to satisfy (e.g. if both cpu and wall timings are set).
+     */
+    public void setParameters(IloCplex cplex) throws LpSolverException {
+	setDefaultParameters(cplex);
+
+	final LpTimingType timingType = getPreferredTimingType();
+
+	final int clockType;
+	switch (timingType) {
+	case WALL_TIMING:
+	    clockType = CPLEX_CLOCK_TYPE_WALL;
+	    break;
+	case CPU_TIMING:
+	    clockType = CPLEX_CLOCK_TYPE_CPU;
+	    break;
+	default:
+	    throw new IllegalStateException("Unknown timing type.");
+	}
+	setParam(cplex, IntParam.ClockType, clockType);
+
+	final Double timeLimit_s = getTimeLimit(timingType);
+	if (timeLimit_s != null) {
+	    setParam(cplex, DoubleParam.TiLim, timeLimit_s.doubleValue());
+	}
+
+	final Integer maxThreads = getParameter(LpIntParameter.MAX_THREADS);
+	final int maxThreadsValue;
+	if (maxThreads == null) {
+	    maxThreadsValue = 0;
+	} else {
+	    maxThreadsValue = maxThreads.intValue();
+	}
+	setParam(cplex, IntParam.Threads, maxThreadsValue);
+
+	if (getParameter(LpDoubleParameter.MAX_TREE_SIZE_MB) != null) {
+	    setParam(cplex, DoubleParam.TreLim, getParameter(LpDoubleParameter.MAX_TREE_SIZE_MB).doubleValue());
+	}
+
+	if (getParameter(LpStringParameter.WORK_DIR) != null) {
+	    setParam(cplex, StringParam.WorkDir, getParameter(LpStringParameter.WORK_DIR));
+	}
+
+	final int mode;
+	if (getParameter(LpIntParameter.DETERMINISTIC).intValue() == 0) {
+	    mode = ParallelMode.Opportunistic;
+	} else {
+	    mode = ParallelMode.Deterministic;
+	}
+	setParam(cplex, IntParam.ParallelMode, mode);
+
+	m_cplex.setOut(new CplexLogger(CplexLogger.OutLevel.INFO));
+	m_cplex.setWarning(new CplexLogger(CplexLogger.OutLevel.WARNING));
+    }
+
     private void setVariables() throws IloException {
 	final Builder<T, IloNumVar> variablesToCplexBuilder = ImmutableBiMap.builder();
 	for (T variable : getProblem().getVariables()) {
@@ -481,14 +475,6 @@ public class SolverCPLEX<T> extends AbstractLpSolver<T> {
 	m_variablesToCplex = variablesToCplexBuilder.build();
 	// m_cplex.iterator();
 	// m_cplex.LPMatrixIterator();
-    }
-
-    @Override
-    public void close() throws LpSolverException {
-	if (m_cplex != null) {
-	    m_cplex.end();
-	    m_cplex = null;
-	}
     }
 
     @Override
@@ -535,8 +521,21 @@ public class SolverCPLEX<T> extends AbstractLpSolver<T> {
     }
 
     @Override
-    public LpFileFormat getPreferredFormat() throws LpSolverException {
-	return null;
+    public void writeProblem(LpFileFormat format, String file, boolean addExtension) throws LpSolverException {
+	if (!addExtension) {
+	    throw new LpSolverException("Not supported without ext.");
+	}
+	switch (format) {
+	case CPLEX_LP:
+	    exportModel(file + ".lp");
+	    break;
+	case MPS:
+	    exportModel(file + ".mps");
+	    break;
+	case SOLVER_PREFERRED:
+	    exportModel(file + ".sav");
+	    break;
+	}
     }
 
 }

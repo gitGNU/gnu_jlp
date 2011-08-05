@@ -62,60 +62,22 @@ import com.google.common.base.Preconditions;
  * 
  */
 public abstract class AbstractLpSolver<T> implements LpSolver<T> {
-    private final LpParameters m_parameters;
     private Double m_autoCorrectThreshold;
+    private boolean m_autoName;
 
-    public Double getTimeLimit(LpTimingType timingType) {
-	switch (timingType) {
-	case WALL_TIMING:
-	    return m_parameters.getValue(LpDoubleParameter.MAX_WALL_SECONDS);
-	case CPU_TIMING:
-	    return m_parameters.getValue(LpDoubleParameter.MAX_CPU_SECONDS);
-	default:
-	    throw new IllegalStateException("Unknown timing type.");
-	}
-    }
+    protected LpSolverDuration m_lastDuration;
+
+    private LpResultStatus m_lastResultStatus;
+
+    private LpSolution<T> m_lastSolution;
+
+    private final LpParameters m_parameters;
+
+    private final LpProblem<T> m_problem;
 
     final private TimingHelper m_timingHelper;
 
-    /**
-     * Retrieves the value associated with the given parameter. If the value has not been set, returns the default value
-     * for that parameter.
-     * 
-     * @param parameter
-     *            not <code>null</code>.
-     * @return a meaningful value for that parameter, possibly <code>null</code> as this is a meaningful value for some
-     *         parameters.
-     */
-    public Double getParameter(LpDoubleParameter parameter) {
-	return m_parameters.getValue(parameter);
-    }
-
-    /**
-     * Retrieves the value associated with the given parameter. If the value has not been set, returns the default value
-     * for that parameter.
-     * 
-     * @param parameter
-     *            not <code>null</code>.
-     * @return a meaningful value for that parameter, possibly <code>null</code> as this is a meaningful value for some
-     *         parameters.
-     */
-    public String getParameter(LpStringParameter parameter) {
-	return m_parameters.getValue(parameter);
-    }
-
-    /**
-     * Retrieves the value associated with the given parameter. If the value has not been set, returns the default value
-     * for that parameter.
-     * 
-     * @param parameter
-     *            not <code>null</code>.
-     * @return a meaningful value for that parameter, possibly <code>null</code> as this is a meaningful value for some
-     *         parameters.
-     */
-    public Integer getParameter(LpIntParameter parameter) {
-	return m_parameters.getValue(parameter);
-    }
+    private Function<T, String> m_variableNamer;
 
     public AbstractLpSolver() {
 	m_problem = new LpProblemImpl<T>();
@@ -140,64 +102,88 @@ public abstract class AbstractLpSolver<T> implements LpSolver<T> {
     }
 
     /**
-     * Sets the maximum difference between a bound and an observed value, after a solve, that will be automatically
-     * corrected by this solver.
+     * Computes and returns the corrected solution value, if the given solution value is not inside the bounds defined
+     * for the given variable. If no bounds are defined or the solution value is in the defined bounds or is outside the
+     * bounds by more than the allowed correction threshold, this method returns the given value. The returned value is
+     * the given solution value corrected by at most {@link #getAutoCorrectThreshold()}. The returned value is
+     * <em>not necessarily</em> inside the defined bounds.
      * 
-     * @param autoCorrectThreshold
-     *            <code>null</code> if this solver should not correct the obtained solutions.
+     * @param variable
+     *            not <code>null</code>.
+     * @param solutionValue
+     *            a real value.
+     * @return the solution value, possibly corrected.
      */
-    @Override
-    public void setAutoCorrectThreshold(Double autoCorrectThreshold) {
-	m_autoCorrectThreshold = autoCorrectThreshold;
+    public double getCorrectedValue(T variable, double solutionValue) {
+	checkNotNull(variable);
+	if (getAutoCorrectThreshold() == null) {
+	    return solutionValue;
+	}
+
+	final Number lowerBound = getProblem().getVarLowerBound(variable);
+	final Number upperBound = getProblem().getVarUpperBound(variable);
+	if (lowerBound != null) {
+	    final double outsideBound = lowerBound.doubleValue() - solutionValue;
+	    if (outsideBound > 0 && outsideBound <= getAutoCorrectThreshold().doubleValue()) {
+		return lowerBound.doubleValue();
+	    }
+	}
+	if (upperBound != null) {
+	    final double outsideBound = solutionValue - upperBound.doubleValue();
+	    if (outsideBound > 0 && outsideBound <= getAutoCorrectThreshold().doubleValue()) {
+		return upperBound.doubleValue();
+	    }
+	}
+	return solutionValue;
     }
-
-    @Override
-    public LpSolution<T> getSolution() {
-	return m_lastSolution;
-    }
-
-    @Override
-    public boolean setProblem(LpProblem<T> problem) {
-	Preconditions.checkNotNull(problem);
-	return LpSolverUtils.copyProblemTo(problem, m_problem);
-    }
-
-    @Override
-    public LpProblem<T> getProblem() {
-	return m_problem;
-    }
-
-    private final LpProblem<T> m_problem;
-
-    private LpSolution<T> m_lastSolution;
-
-    protected LpSolverDuration m_lastDuration;
-
-    private LpResultStatus m_lastResultStatus;
-
-    private boolean m_autoName;
-
-    private Function<T, String> m_variableNamer;
 
     @Override
     public LpSolverDuration getDuration() {
 	return m_lastDuration;
     }
 
-    @Override
-    public LpParameters getParametersView() {
-	return m_parameters;
+    /**
+     * Retrieves the value associated with the given parameter. If the value has not been set, returns the default value
+     * for that parameter.
+     * 
+     * @param parameter
+     *            not <code>null</code>.
+     * @return a meaningful value for that parameter, possibly <code>null</code> as this is a meaningful value for some
+     *         parameters.
+     */
+    public Double getParameter(LpDoubleParameter parameter) {
+	return m_parameters.getValue(parameter);
+    }
+
+    /**
+     * Retrieves the value associated with the given parameter. If the value has not been set, returns the default value
+     * for that parameter.
+     * 
+     * @param parameter
+     *            not <code>null</code>.
+     * @return a meaningful value for that parameter, possibly <code>null</code> as this is a meaningful value for some
+     *         parameters.
+     */
+    public Integer getParameter(LpIntParameter parameter) {
+	return m_parameters.getValue(parameter);
+    }
+
+    /**
+     * Retrieves the value associated with the given parameter. If the value has not been set, returns the default value
+     * for that parameter.
+     * 
+     * @param parameter
+     *            not <code>null</code>.
+     * @return a meaningful value for that parameter, possibly <code>null</code> as this is a meaningful value for some
+     *         parameters.
+     */
+    public String getParameter(LpStringParameter parameter) {
+	return m_parameters.getValue(parameter);
     }
 
     @Override
-    public boolean setParameters(LpParameters parameters) {
-	Preconditions.checkNotNull(parameters);
-	if (parameters.equals(m_parameters)) {
-	    return false;
-	}
-	LpParametersUtils.removeAllValues(m_parameters);
-	LpParametersUtils.setAllValues(m_parameters, parameters);
-	return true;
+    public LpParameters getParametersView() {
+	return m_parameters;
     }
 
     /**
@@ -236,23 +222,9 @@ public abstract class AbstractLpSolver<T> implements LpSolver<T> {
 	return timingType;
     }
 
-    /**
-     * Sets the solution as a defensive copy of the given solution.
-     * 
-     * @param solution
-     *            not <code>null</code>.
-     */
-    protected void setSolution(LpSolution<T> solution) {
-	Preconditions.checkNotNull(solution);
-	m_lastSolution = new LpSolutionImmutable<T>(solution);
-    }
-
     @Override
-    public LpResultStatus solve() throws LpSolverException {
-	Preconditions.checkState(getProblem().getObjective().isEmpty() || getProblem().getObjective().isComplete(),
-		"Problem must have an objective function iff it has an objective direction.");
-	m_lastResultStatus = solveUnderlying();
-	return m_lastResultStatus;
+    public LpProblem<T> getProblem() {
+	return m_problem;
     }
 
     @Override
@@ -260,7 +232,21 @@ public abstract class AbstractLpSolver<T> implements LpSolver<T> {
 	return m_lastResultStatus;
     }
 
-    abstract protected LpResultStatus solveUnderlying() throws LpSolverException;
+    @Override
+    public LpSolution<T> getSolution() {
+	return m_lastSolution;
+    }
+
+    public Double getTimeLimit(LpTimingType timingType) {
+	switch (timingType) {
+	case WALL_TIMING:
+	    return m_parameters.getValue(LpDoubleParameter.MAX_WALL_SECONDS);
+	case CPU_TIMING:
+	    return m_parameters.getValue(LpDoubleParameter.MAX_CPU_SECONDS);
+	default:
+	    throw new IllegalStateException("Unknown timing type.");
+	}
+    }
 
     @Override
     public Function<T, String> getVariableNamer() {
@@ -284,45 +270,59 @@ public abstract class AbstractLpSolver<T> implements LpSolver<T> {
 	return varName;
     }
 
+    /**
+     * Sets the maximum difference between a bound and an observed value, after a solve, that will be automatically
+     * corrected by this solver.
+     * 
+     * @param autoCorrectThreshold
+     *            <code>null</code> if this solver should not correct the obtained solutions.
+     */
+    @Override
+    public void setAutoCorrectThreshold(Double autoCorrectThreshold) {
+	m_autoCorrectThreshold = autoCorrectThreshold;
+    }
+
+    @Override
+    public boolean setParameters(LpParameters parameters) {
+	Preconditions.checkNotNull(parameters);
+	if (parameters.equals(m_parameters)) {
+	    return false;
+	}
+	LpParametersUtils.removeAllValues(m_parameters);
+	LpParametersUtils.setAllValues(m_parameters, parameters);
+	return true;
+    }
+
+    @Override
+    public boolean setProblem(LpProblem<T> problem) {
+	Preconditions.checkNotNull(problem);
+	return LpSolverUtils.copyProblemTo(problem, m_problem);
+    }
+
+    /**
+     * Sets the solution as a defensive copy of the given solution.
+     * 
+     * @param solution
+     *            not <code>null</code>.
+     */
+    protected void setSolution(LpSolution<T> solution) {
+	Preconditions.checkNotNull(solution);
+	m_lastSolution = new LpSolutionImmutable<T>(solution);
+    }
+
     @Override
     public void setVariableNamer(Function<T, String> variableNamer) {
 	m_variableNamer = variableNamer;
     }
 
-    /**
-     * Computes and returns the corrected solution value, if the given solution value is not inside the bounds defined
-     * for the given variable. If no bounds are defined or the solution value is in the defined bounds or is outside the
-     * bounds by more than the allowed correction threshold, this method returns the given value. The returned value is
-     * the given solution value corrected by at most {@link #getAutoCorrectThreshold()}. The returned value is
-     * <em>not necessarily</em> inside the defined bounds.
-     * 
-     * @param variable
-     *            not <code>null</code>.
-     * @param solutionValue
-     *            a real value.
-     * @return the solution value, possibly corrected.
-     */
-    public double getCorrectedValue(T variable, double solutionValue) {
-	checkNotNull(variable);
-	if (getAutoCorrectThreshold() == null) {
-	    return solutionValue;
-	}
-
-	final Number lowerBound = getProblem().getVarLowerBound(variable);
-	final Number upperBound = getProblem().getVarUpperBound(variable);
-	if (lowerBound != null) {
-	    final double outsideBound = lowerBound.doubleValue() - solutionValue;
-	    if (outsideBound > 0 && outsideBound <= getAutoCorrectThreshold().doubleValue()) {
-		return lowerBound.doubleValue();
-	    }
-	}
-	if (upperBound != null) {
-	    final double outsideBound = solutionValue - upperBound.doubleValue();
-	    if (outsideBound > 0 && outsideBound <= getAutoCorrectThreshold().doubleValue()) {
-		return upperBound.doubleValue();
-	    }
-	}
-	return solutionValue;
+    @Override
+    public LpResultStatus solve() throws LpSolverException {
+	Preconditions.checkState(getProblem().getObjective().isEmpty() || getProblem().getObjective().isComplete(),
+		"Problem must have an objective function iff it has an objective direction.");
+	m_lastResultStatus = solveUnderlying();
+	return m_lastResultStatus;
     }
+
+    abstract protected LpResultStatus solveUnderlying() throws LpSolverException;
 
 }

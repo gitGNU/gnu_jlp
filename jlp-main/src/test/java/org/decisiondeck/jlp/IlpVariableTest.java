@@ -28,15 +28,15 @@ public class IlpVariableTest {
     }
 
     @Test(expected = NullPointerException.class)
-    public void testNullReferencesObj() throws Exception {
-	Object refs = null;
+    public void testNullReferences() throws Exception {
+	Object[] refs = null;
 	@SuppressWarnings("unused")
 	final LpVariable<String> lpVariable = new LpVariable<String>("cat1", refs);
     }
 
     @Test(expected = NullPointerException.class)
-    public void testNullReferences() throws Exception {
-	Object[] refs = null;
+    public void testNullReferencesObj() throws Exception {
+	Object refs = null;
 	@SuppressWarnings("unused")
 	final LpVariable<String> lpVariable = new LpVariable<String>("cat1", refs);
     }

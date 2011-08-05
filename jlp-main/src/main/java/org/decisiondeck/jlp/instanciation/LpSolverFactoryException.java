@@ -27,12 +27,12 @@ public class LpSolverFactoryException extends LpSolverException {
 	super();
     }
 
-    public LpSolverFactoryException(String message, Throwable cause) {
-	super(message, cause);
-    }
-
     public LpSolverFactoryException(String message) {
 	super(message);
+    }
+
+    public LpSolverFactoryException(String message, Throwable cause) {
+	super(message, cause);
     }
 
     public LpSolverFactoryException(Throwable cause) {

@@ -69,14 +69,6 @@ public interface LpProblem<T> {
     public boolean add(LpConstraint<T> constraint);
 
     /**
-     * Retrieves the dimension of this problem in number of variables and constraints. The bounds do not count as
-     * constraints.
-     * 
-     * @return not <code>null</code>.
-     */
-    public LpDimension getDimension();
-
-    /**
      * Adds a constraint, or does nothing if the given constraint is already in the problem. The variables used in the
      * objective must have been added to this problem already.
      * 
@@ -94,12 +86,36 @@ public interface LpProblem<T> {
     public boolean add(String name, LpLinear<T> lhs, LpOperator operator, double rhs);
 
     /**
+     * Adds the variable to this problem if it is not already in with a default type of REAL, no name, no lower and
+     * upper bounds.
+     * 
+     * @param variable
+     *            not <code>null</code>.
+     * @return <code>true</code> iff the call modified the state of this object.
+     */
+    public boolean addVariable(T variable);
+
+    /**
+     * Removes all the variables and constraints, objective function, and name set in this problem. This problem is then
+     * as a newly created, empty problem.
+     */
+    public void clear();
+
+    /**
      * Retrieves a copy or read-only view of the constraints in this problem. The returned set uses insertion order,
      * thus is iterated in the order the constraints have been added to this problem.
      * 
      * @return not <code>null</code>, but may be empty.
      */
     public Set<LpConstraint<T>> getConstraints();
+
+    /**
+     * Retrieves the dimension of this problem in number of variables and constraints. The bounds do not count as
+     * constraints.
+     * 
+     * @return not <code>null</code>.
+     */
+    public LpDimension getDimension();
 
     /**
      * Retrieves the name of the problem.
@@ -234,20 +250,4 @@ public interface LpProblem<T> {
      * @return <code>true</code> iff the call modified the state of this object.
      */
     public boolean setVarType(T variable, LpVariableType type);
-
-    /**
-     * Adds the variable to this problem if it is not already in with a default type of REAL, no name, no lower and
-     * upper bounds.
-     * 
-     * @param variable
-     *            not <code>null</code>.
-     * @return <code>true</code> iff the call modified the state of this object.
-     */
-    public boolean addVariable(T variable);
-
-    /**
-     * Removes all the variables and constraints, objective function, and name set in this problem. This problem is then
-     * as a newly created, empty problem.
-     */
-    public void clear();
 }

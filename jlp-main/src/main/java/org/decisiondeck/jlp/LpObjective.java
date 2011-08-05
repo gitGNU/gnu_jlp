@@ -32,6 +32,11 @@ public class LpObjective<T> {
     /**
      * May be <code>null</code>.
      */
+    final private LpDirection m_direction;
+
+    /**
+     * May be <code>null</code>.
+     */
     final private LpLinearImmutable<T> m_objectiveFunction;
 
     /**
@@ -45,11 +50,6 @@ public class LpObjective<T> {
     public LpObjective(LpLinear<T> objectiveFunction, LpDirection direction) {
 	m_objectiveFunction = objectiveFunction == null ? null : new LpLinearImmutable<T>(objectiveFunction);
 	m_direction = direction;
-    }
-
-    @Override
-    public int hashCode() {
-	return Objects.hashCode(m_direction, m_objectiveFunction);
     }
 
     @Override
@@ -70,18 +70,14 @@ public class LpObjective<T> {
 	return true;
     }
 
-    @Override
-    public String toString() {
-	final ToStringHelper helper = Objects.toStringHelper(this);
-	helper.add("Function", m_objectiveFunction);
-	helper.add("Direction", m_direction);
-	return helper.toString();
-    }
-
     /**
-     * May be <code>null</code>.
+     * Retrieves the optimization direction of the objective function to be.
+     * 
+     * @return possibly <code>null</code>.
      */
-    final private LpDirection m_direction;
+    public LpDirection getDirection() {
+	return m_direction;
+    }
 
     /**
      * Retrieves the objective function stored in this object.
@@ -92,13 +88,9 @@ public class LpObjective<T> {
 	return m_objectiveFunction;
     }
 
-    /**
-     * Retrieves the optimization direction of the objective function to be.
-     * 
-     * @return possibly <code>null</code>.
-     */
-    public LpDirection getDirection() {
-	return m_direction;
+    @Override
+    public int hashCode() {
+	return Objects.hashCode(m_direction, m_objectiveFunction);
     }
 
     /**
@@ -117,5 +109,13 @@ public class LpObjective<T> {
      */
     public boolean isEmpty() {
 	return m_objectiveFunction == null && m_direction == null;
+    }
+
+    @Override
+    public String toString() {
+	final ToStringHelper helper = Objects.toStringHelper(this);
+	helper.add("Function", m_objectiveFunction);
+	helper.add("Direction", m_direction);
+	return helper.toString();
     }
 }

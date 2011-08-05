@@ -19,14 +19,14 @@ package org.decisiondeck.jlp.parameters;
 
 public enum LpIntParameter {
     /**
-     * <code>null</code> for no max (default), otherwise must be a strictly positive number.
-     */
-    MAX_THREADS,
-
-    /**
      * 1 to force the solver to have a deterministic behavior: if run twice with the same input and parameters, will
      * find twice the same solution. The default value of 0 does not force the solver, which can enhance performances
      * especially in multi thread setting.
      */
-    DETERMINISTIC
+    DETERMINISTIC,
+
+    /**
+     * <code>null</code> for no max (default), otherwise must be a strictly positive number.
+     */
+    MAX_THREADS
 }

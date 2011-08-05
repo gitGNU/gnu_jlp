@@ -54,20 +54,12 @@ import org.decisiondeck.jlp.problem.LpVariableType;
 public interface LpSolution<T> extends LpSolutionAlone<T> {
 
     /**
-     * Retrieves the problem that this solution solves.
+     * Tests whether the variables that have a type {@link LpVariableType#BOOL} (according to the bound problem) and
+     * that have a solution indeed have a value of zero or one ± 1e-6.
      * 
-     * @return not <code>null</code>, immutable.
+     * @return <code>true</code> iff the boolean variables have boolean values.
      */
-    public LpProblem<T> getProblem();
-
-    /**
-     * Retrieves a copy or read-only view of the variables which have a solution value. The returned set is guaranteed
-     * to be included in the set of variables contained in the bound problem.
-     * 
-     * @return not <code>null</code>, but may be empty.
-     */
-    @Override
-    public Set<T> getVariables();
+    public boolean boolsAreBools();
 
     /**
      * <p>
@@ -92,6 +84,26 @@ public interface LpSolution<T> extends LpSolutionAlone<T> {
     public boolean getBooleanValue(T variable);
 
     /**
+     * Retrieves the value of the objective function computed from the objective function itself with the values of the
+     * variables set in this solution. Returns <code>null</code> if the objective function is not set in the bound
+     * problem or one of the variables required value is not set.
+     * 
+     * @return possibly <code>null</code>.
+     */
+    public Number getComputedObjectiveValue();
+
+    /**
+     * Returns, if it is known, the value corresponding to the dual variable associated to the given primal constraint.
+     * Returns necessarily <code>null</code> if the constraint is not in the associated problem.
+     * 
+     * @param constraint
+     *            not <code>null</code>.
+     * @return <code>null</code> iff the variable has no associated dual value.
+     */
+    @Override
+    public Number getDualValue(LpConstraint<T> constraint);
+
+    /**
      * Returns the objective value. Returns necessarily <code>null</code> if the bound problem has no objective
      * function.
      * 
@@ -101,13 +113,11 @@ public interface LpSolution<T> extends LpSolutionAlone<T> {
     public Number getObjectiveValue();
 
     /**
-     * Retrieves the value of the objective function computed from the objective function itself with the values of the
-     * variables set in this solution. Returns <code>null</code> if the objective function is not set in the bound
-     * problem or one of the variables required value is not set.
+     * Retrieves the problem that this solution solves.
      * 
-     * @return possibly <code>null</code>.
+     * @return not <code>null</code>, immutable.
      */
-    public Number getComputedObjectiveValue();
+    public LpProblem<T> getProblem();
 
     /**
      * Returns the primal value of the variable, if it is known. Returns necessarily <code>null</code> if the given
@@ -121,22 +131,12 @@ public interface LpSolution<T> extends LpSolutionAlone<T> {
     public Number getValue(T variable);
 
     /**
-     * Tests whether the variables that have a type {@link LpVariableType#BOOL} (according to the bound problem) and
-     * that have a solution indeed have a value of zero or one ± 1e-6.
+     * Retrieves a copy or read-only view of the variables which have a solution value. The returned set is guaranteed
+     * to be included in the set of variables contained in the bound problem.
      * 
-     * @return <code>true</code> iff the boolean variables have boolean values.
-     */
-    public boolean boolsAreBools();
-
-    /**
-     * Returns, if it is known, the value corresponding to the dual variable associated to the given primal constraint.
-     * Returns necessarily <code>null</code> if the constraint is not in the associated problem.
-     * 
-     * @param constraint
-     *            not <code>null</code>.
-     * @return <code>null</code> iff the variable has no associated dual value.
+     * @return not <code>null</code>, but may be empty.
      */
     @Override
-    public Number getDualValue(LpConstraint<T> constraint);
+    public Set<T> getVariables();
 
 }

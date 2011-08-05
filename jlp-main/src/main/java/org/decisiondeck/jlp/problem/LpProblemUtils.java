@@ -35,14 +35,6 @@ import com.google.common.collect.Sets;
  * 
  */
 public class LpProblemUtils {
-    static public <T> LpProblem<T> getImmutableCopy(LpProblem<T> source) {
-	return new LpProblemImmutable<T>(source);
-    }
-
-    static public <T> LpProblem<T> getReadView(LpProblem<T> delegate) {
-	return new LpProblemReadView<T>(delegate);
-    }
-
     /**
      * Retrieves a long description, with line breaks, of the given problem.
      * 
@@ -93,6 +85,14 @@ public class LpProblemUtils {
 
 	return s;
 
+    }
+
+    static public <T> LpProblem<T> getImmutableCopy(LpProblem<T> source) {
+	return new LpProblemImmutable<T>(source);
+    }
+
+    static public <T> LpProblem<T> getReadView(LpProblem<T> delegate) {
+	return new LpProblemReadView<T>(delegate);
     }
 
     /**

@@ -25,12 +25,12 @@ public class LpSolverException extends Exception {
 	super();
     }
 
-    public LpSolverException(String message, Throwable cause) {
-	super(message, cause);
-    }
-
     public LpSolverException(String message) {
 	super(message);
+    }
+
+    public LpSolverException(String message, Throwable cause) {
+	super(message, cause);
     }
 
     public LpSolverException(Throwable cause) {

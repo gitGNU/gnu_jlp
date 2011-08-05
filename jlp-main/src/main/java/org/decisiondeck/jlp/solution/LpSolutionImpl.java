@@ -61,12 +61,12 @@ public class LpSolutionImpl<T> implements LpSolution<T> {
     /**
      * No <code>null</code> key or value.
      */
-    private final Map<T, Number> m_primalValues = new HashMap<T, Number>();
+    private final Map<LpConstraint<T>, Number> m_dualValues = new HashMap<LpConstraint<T>, Number>();
+    private Number m_objectiveValue = null;
     /**
      * No <code>null</code> key or value.
      */
-    private final Map<LpConstraint<T>, Number> m_dualValues = new HashMap<LpConstraint<T>, Number>();
-    private Number m_objectiveValue = null;
+    private final Map<T, Number> m_primalValues = new HashMap<T, Number>();
     /**
      * Not <code>null</code>, immutable.
      */
@@ -124,12 +124,18 @@ public class LpSolutionImpl<T> implements LpSolution<T> {
     }
 
     @Override
-    public Number getComputedObjectiveValue() {
-	final LpLinear<T> objectiveFunction = m_problem.getObjective().getFunction();
-	if (objectiveFunction == null) {
-	    return null;
+    public boolean boolsAreBools() {
+	return LpSolverUtils.boolsAreBools(this);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+	if (!(obj instanceof LpSolution<?>)) {
+	    return false;
 	}
-	return LpUtils.evaluate(objectiveFunction, m_primalValues);
+
+	LpSolution<?> s2 = (LpSolution<?>) obj;
+	return LpSolverUtils.equivalent(this, s2);
     }
 
     @Override
@@ -149,36 +155,50 @@ public class LpSolutionImpl<T> implements LpSolution<T> {
     }
 
     @Override
-    public Number getValue(T variable) {
-	Preconditions.checkNotNull(variable);
-	return m_primalValues.get(variable);
+    public Number getComputedObjectiveValue() {
+	final LpLinear<T> objectiveFunction = m_problem.getObjective().getFunction();
+	if (objectiveFunction == null) {
+	    return null;
+	}
+	return LpUtils.evaluate(objectiveFunction, m_primalValues);
     }
 
-    /**
-     * @param variable
-     *            not <code>null</code>. Must exist in the bound problem.
-     * @param value
-     *            may be <code>null</code>.
-     * @return <code>true</code> iff the call changed this object state, or equivalently, <code>false</code> iff the
-     *         given value is <code>null</code> and the given variable did not have its primal value set, or the given
-     *         value is not <code>null</code> and equals the primal value previously associated with the given variable.
-     */
-    public boolean putValue(T variable, Number value) {
-	Preconditions.checkNotNull(variable);
-	Preconditions.checkArgument(m_problem.getVariables().contains(variable));
-	final Number previous;
-	if (value == null) {
-	    previous = m_primalValues.remove(variable);
-	} else {
-	    previous = m_primalValues.put(variable, value);
-	}
-	return Objects.equal(previous, value);
+    @Override
+    public Set<LpConstraint<T>> getConstraints() {
+	return Collections.unmodifiableSet(m_dualValues.keySet());
     }
 
     @Override
     public Number getDualValue(LpConstraint<T> constraint) {
 	Preconditions.checkNotNull(constraint);
 	return m_dualValues.get(constraint);
+    }
+
+    @Override
+    public Number getObjectiveValue() {
+	return m_objectiveValue;
+    }
+
+    @Override
+    public LpProblem<T> getProblem() {
+	return m_problem;
+    }
+
+    @Override
+    public Number getValue(T variable) {
+	Preconditions.checkNotNull(variable);
+	return m_primalValues.get(variable);
+    }
+
+    @Override
+    public Set<T> getVariables() {
+	return Collections.unmodifiableSet(m_primalValues.keySet());
+    }
+
+    @Override
+    public int hashCode() {
+	final Equivalence<LpSolution<T>> solutionEquivalence = LpSolverUtils.getSolutionEquivalence();
+	return solutionEquivalence.hash(this);
     }
 
     /**
@@ -203,14 +223,25 @@ public class LpSolutionImpl<T> implements LpSolution<T> {
 	return Objects.equal(previous, value);
     }
 
-    @Override
-    public String toString() {
-	return LpSolverUtils.getAsString(this);
-    }
-
-    @Override
-    public Number getObjectiveValue() {
-	return m_objectiveValue;
+    /**
+     * @param variable
+     *            not <code>null</code>. Must exist in the bound problem.
+     * @param value
+     *            may be <code>null</code>.
+     * @return <code>true</code> iff the call changed this object state, or equivalently, <code>false</code> iff the
+     *         given value is <code>null</code> and the given variable did not have its primal value set, or the given
+     *         value is not <code>null</code> and equals the primal value previously associated with the given variable.
+     */
+    public boolean putValue(T variable, Number value) {
+	Preconditions.checkNotNull(variable);
+	Preconditions.checkArgument(m_problem.getVariables().contains(variable));
+	final Number previous;
+	if (value == null) {
+	    previous = m_primalValues.remove(variable);
+	} else {
+	    previous = m_primalValues.put(variable, value);
+	}
+	return Objects.equal(previous, value);
     }
 
     /**
@@ -226,39 +257,8 @@ public class LpSolutionImpl<T> implements LpSolution<T> {
     }
 
     @Override
-    public Set<T> getVariables() {
-	return Collections.unmodifiableSet(m_primalValues.keySet());
-    }
-
-    @Override
-    public int hashCode() {
-	final Equivalence<LpSolution<T>> solutionEquivalence = LpSolverUtils.getSolutionEquivalence();
-	return solutionEquivalence.hash(this);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-	if (!(obj instanceof LpSolution<?>)) {
-	    return false;
-	}
-
-	LpSolution<?> s2 = (LpSolution<?>) obj;
-	return LpSolverUtils.equivalent(this, s2);
-    }
-
-    @Override
-    public LpProblem<T> getProblem() {
-	return m_problem;
-    }
-
-    @Override
-    public boolean boolsAreBools() {
-	return LpSolverUtils.boolsAreBools(this);
-    }
-
-    @Override
-    public Set<LpConstraint<T>> getConstraints() {
-	return Collections.unmodifiableSet(m_dualValues.keySet());
+    public String toString() {
+	return LpSolverUtils.getAsString(this);
     }
 
 }

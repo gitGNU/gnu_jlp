@@ -71,6 +71,12 @@ public class LpProblemExamples {
 	return problem;
     }
 
+    public static LpProblem<String> getIntOneFourThreeLowX() {
+	final LpProblem<String> problem = getIntOneFourThree();
+	problem.setVarBounds("x", null, Double.valueOf(16d));
+	return problem;
+    }
+
     /**
      * Retrieves the optimal solution of the problem.
      * 
@@ -83,12 +89,6 @@ public class LpProblemExamples {
 	solution.putValue("y", Integer.valueOf(59));
 	assert (solution.getComputedObjectiveValue().doubleValue() == solution.getObjectiveValue().doubleValue());
 	return solution;
-    }
-
-    public static LpProblem<String> getIntOneFourThreeLowX() {
-	final LpProblem<String> problem = getIntOneFourThree();
-	problem.setVarBounds("x", null, Double.valueOf(16d));
-	return problem;
     }
 
     /**

@@ -55,9 +55,28 @@ import com.google.common.base.Equivalence;
  */
 public class LpProblemWithTransformedBoolsView<T> extends LpProblemForwarder<T> implements LpProblem<T> {
 
+    /**
+     * Creates a view that delegates to the given object.
+     * 
+     * @param delegate
+     *            not <code>null</code>.
+     */
+    public LpProblemWithTransformedBoolsView(LpProblem<T> delegate) {
+	super(delegate);
+    }
+
     @Override
     public boolean add(LpConstraint<T> constraint) {
 	return delegate().add(constraint);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+	if (!(obj instanceof LpProblem<?>)) {
+	    return false;
+	}
+	LpProblem<?> p2 = (LpProblem<?>) obj;
+	return LpSolverUtils.equivalent(this, p2);
     }
 
     @Override
@@ -79,15 +98,6 @@ public class LpProblemWithTransformedBoolsView<T> extends LpProblemForwarder<T> 
     }
 
     @Override
-    public boolean equals(Object obj) {
-	if (!(obj instanceof LpProblem<?>)) {
-	    return false;
-	}
-	LpProblem<?> p2 = (LpProblem<?>) obj;
-	return LpSolverUtils.equivalent(this, p2);
-    }
-
-    @Override
     public int hashCode() {
 	final Equivalence<LpProblem<T>> problemEquivalence = LpSolverUtils.getProblemEquivalence();
 	return problemEquivalence.hash(this);
@@ -96,16 +106,6 @@ public class LpProblemWithTransformedBoolsView<T> extends LpProblemForwarder<T> 
     @Override
     public String toString() {
 	return LpSolverUtils.getAsString(this);
-    }
-
-    /**
-     * Creates a view that delegates to the given object.
-     * 
-     * @param delegate
-     *            not <code>null</code>.
-     */
-    public LpProblemWithTransformedBoolsView(LpProblem<T> delegate) {
-	super(delegate);
     }
 
 }

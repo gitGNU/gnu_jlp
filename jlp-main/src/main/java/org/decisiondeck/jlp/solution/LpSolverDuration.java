@@ -28,7 +28,13 @@ import com.google.common.base.Objects.ToStringHelper;
  */
 public class LpSolverDuration {
 
+    private final Long m_solverCpuDuration_ms;
+
     private final Long m_solverWallDuration_ms;
+
+    private final Long m_threadDuration_ms;
+
+    private final Long m_wallDuration_ms;
 
     /**
      * One of the parameters at least must be different than <code>null</code>.
@@ -57,10 +63,37 @@ public class LpSolverDuration {
     }
 
     /**
+     * @return the solver CPU duration, if available, otherwise the solver wall duration, if available, otherwise the
+     *         wall duration, if available, otherwise the thread duration.
+     */
+    public long getDuration_ms() {
+	if (m_solverCpuDuration_ms != null) {
+	    return m_solverCpuDuration_ms.longValue();
+	}
+	if (m_solverWallDuration_ms != null) {
+	    return m_solverWallDuration_ms.longValue();
+	}
+	if (m_wallDuration_ms != null) {
+	    return m_wallDuration_ms.longValue();
+	}
+	if (m_threadDuration_ms != null) {
+	    return m_threadDuration_ms.longValue();
+	}
+	throw new IllegalStateException("Should have at least one non-null value.");
+    }
+
+    /**
      * @return the duration in CPU time as computed by the solver, or <code>null</code> if not set.
      */
     public Long getSolverCpuDuration_ms() {
 	return m_solverCpuDuration_ms;
+    }
+
+    /**
+     * @return the duration in wall clock time as computed by the solver, or <code>null</code> if not set.
+     */
+    public Long getSolverWallDuration_ms() {
+	return m_solverWallDuration_ms;
     }
 
     /**
@@ -76,17 +109,6 @@ public class LpSolverDuration {
     public Long getWallDuration_ms() {
 	return m_wallDuration_ms;
     }
-
-    /**
-     * @return the duration in wall clock time as computed by the solver, or <code>null</code> if not set.
-     */
-    public Long getSolverWallDuration_ms() {
-	return m_solverWallDuration_ms;
-    }
-
-    private final Long m_threadDuration_ms;
-    private final Long m_wallDuration_ms;
-    private final Long m_solverCpuDuration_ms;
 
     @Override
     public String toString() {
@@ -133,26 +155,6 @@ public class LpSolverDuration {
 	// }
 	// builder.append("]");
 	// return builder.toString();
-    }
-
-    /**
-     * @return the solver CPU duration, if available, otherwise the solver wall duration, if available, otherwise the
-     *         wall duration, if available, otherwise the thread duration.
-     */
-    public long getDuration_ms() {
-	if (m_solverCpuDuration_ms != null) {
-	    return m_solverCpuDuration_ms.longValue();
-	}
-	if (m_solverWallDuration_ms != null) {
-	    return m_solverWallDuration_ms.longValue();
-	}
-	if (m_wallDuration_ms != null) {
-	    return m_wallDuration_ms.longValue();
-	}
-	if (m_threadDuration_ms != null) {
-	    return m_threadDuration_ms.longValue();
-	}
-	throw new IllegalStateException("Should have at least one non-null value.");
     }
 
 }

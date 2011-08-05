@@ -19,11 +19,6 @@ package org.decisiondeck.jlp.parameters;
 
 import static org.junit.Assert.assertTrue;
 
-
-import org.decisiondeck.jlp.parameters.LpDoubleParameter;
-import org.decisiondeck.jlp.parameters.LpIntParameter;
-import org.decisiondeck.jlp.parameters.LpParametersDefaultValues;
-import org.decisiondeck.jlp.parameters.LpStringParameter;
 import org.junit.Test;
 
 public class IlpParametersDefaultValuesTest {

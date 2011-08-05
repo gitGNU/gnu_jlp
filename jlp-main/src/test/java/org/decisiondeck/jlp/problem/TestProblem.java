@@ -17,12 +17,9 @@
  */
 package org.decisiondeck.jlp.problem;
 
-
 import org.decisiondeck.jlp.LpDirection;
 import org.decisiondeck.jlp.LpLinear;
 import org.decisiondeck.jlp.LpLinearImpl;
-import org.decisiondeck.jlp.problem.LpProblem;
-import org.decisiondeck.jlp.problem.LpProblemImpl;
 import org.junit.Test;
 
 public class TestProblem {

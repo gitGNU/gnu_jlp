@@ -83,6 +83,13 @@ public interface LpParameters {
     public Map<LpIntParameter, Integer> getIntParameters();
 
     /**
+     * Retrieves a copy of the non default string values set in this object.
+     * 
+     * @return not <code>null</code>.
+     */
+    public Map<LpStringParameter, String> getStringParameters();
+
+    /**
      * Retrieves the value associated with the given parameter. If the value has not been set, returns the default value
      * for that parameter.
      * 
@@ -116,11 +123,15 @@ public interface LpParameters {
     public String getValue(LpStringParameter parameter);
 
     /**
-     * Retrieves a copy of the non default string values set in this object.
+     * Retrieves the value associated with the given parameter. If the value has not been set, returns the default value
+     * for that parameter. This is a non type safe method equivalent to other get methods found in this object.
      * 
-     * @return not <code>null</code>.
+     * @param parameter
+     *            not <code>null</code>. The type must be {@link LpIntParameter}, {@link LpDoubleParameter} or
+     *            {@link LpStringParameter}.
+     * @return the associated value, possibly <code>null</code> as this is a meaningful value for some parameters.
      */
-    public Map<LpStringParameter, String> getStringParameters();
+    public Object getValueAsObject(Enum<?> parameter);
 
     /**
      * Sets the value associated with a parameter. The value must be a meaningful value for that parameter. To restore a
@@ -163,17 +174,6 @@ public interface LpParameters {
      *         value for a parameter that had not previously been set returns <code>false</code>.
      */
     public boolean setValue(LpStringParameter parameter, String value);
-
-    /**
-     * Retrieves the value associated with the given parameter. If the value has not been set, returns the default value
-     * for that parameter. This is a non type safe method equivalent to other get methods found in this object.
-     * 
-     * @param parameter
-     *            not <code>null</code>. The type must be {@link LpIntParameter}, {@link LpDoubleParameter} or
-     *            {@link LpStringParameter}.
-     * @return the associated value, possibly <code>null</code> as this is a meaningful value for some parameters.
-     */
-    public Object getValueAsObject(Enum<?> parameter);
 
     /**
      * Sets the value associated with a parameter. The value must be a meaningful value for that parameter. To restore a

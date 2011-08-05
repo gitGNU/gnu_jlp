@@ -25,5 +25,5 @@ package org.decisiondeck.jlp;
  * 
  */
 public enum LpDirection {
-    MIN, MAX;
+    MAX, MIN;
 }

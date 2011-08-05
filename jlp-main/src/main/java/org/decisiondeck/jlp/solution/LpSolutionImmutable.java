@@ -35,23 +35,13 @@ import com.google.common.collect.ImmutableMap.Builder;
 
 public class LpSolutionImmutable<T> implements LpSolution<T> {
 
-    private final Number m_objectiveValue;
-    private final ImmutableMap<T, Number> m_primalValues;
-    private final LpProblem<T> m_problem;
     /**
      * No <code>null</code> key or value.
      */
     private final Map<LpConstraint<T>, Number> m_dualValues;
-
-    /**
-     * Copy constructor by value.
-     * 
-     * @param solution
-     *            not <code>null</code>.
-     */
-    public LpSolutionImmutable(LpSolution<T> solution) {
-	this(solution.getProblem(), solution, false);
-    }
+    private final Number m_objectiveValue;
+    private final ImmutableMap<T, Number> m_primalValues;
+    private final LpProblem<T> m_problem;
 
     /**
      * <p>
@@ -104,9 +94,29 @@ public class LpSolutionImmutable<T> implements LpSolution<T> {
 	}
     }
 
+    /**
+     * Copy constructor by value.
+     * 
+     * @param solution
+     *            not <code>null</code>.
+     */
+    public LpSolutionImmutable(LpSolution<T> solution) {
+	this(solution.getProblem(), solution, false);
+    }
+
     @Override
-    public Number getObjectiveValue() {
-	return m_objectiveValue;
+    public boolean boolsAreBools() {
+	return LpSolverUtils.boolsAreBools(this);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+	if (!(obj instanceof LpSolution<?>)) {
+	    return false;
+	}
+
+	LpSolution<?> s2 = (LpSolution<?>) obj;
+	return LpSolverUtils.equivalent(this, s2);
     }
 
     @Override
@@ -126,49 +136,12 @@ public class LpSolutionImmutable<T> implements LpSolution<T> {
     }
 
     @Override
-    public Number getValue(T variable) {
-	Preconditions.checkNotNull(variable);
-	return m_primalValues.get(variable);
-    }
-
-    @Override
-    public LpProblem<T> getProblem() {
-	return m_problem;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-	if (!(obj instanceof LpSolution<?>)) {
-	    return false;
-	}
-
-	LpSolution<?> s2 = (LpSolution<?>) obj;
-	return LpSolverUtils.equivalent(this, s2);
-    }
-
-    @Override
-    public int hashCode() {
-	final Equivalence<LpSolution<T>> solutionEquivalence = LpSolverUtils.getSolutionEquivalence();
-	return solutionEquivalence.hash(this);
-    }
-
-    @Override
-    public String toString() {
-	return LpSolverUtils.getAsString(this);
-    }
-
-    @Override
     public Number getComputedObjectiveValue() {
 	final LpLinear<T> objectiveFunction = m_problem.getObjective().getFunction();
 	if (objectiveFunction == null) {
 	    return null;
 	}
 	return LpUtils.evaluate(objectiveFunction, m_primalValues);
-    }
-
-    @Override
-    public boolean boolsAreBools() {
-	return LpSolverUtils.boolsAreBools(this);
     }
 
     @Override
@@ -183,8 +156,35 @@ public class LpSolutionImmutable<T> implements LpSolution<T> {
     }
 
     @Override
+    public Number getObjectiveValue() {
+	return m_objectiveValue;
+    }
+
+    @Override
+    public LpProblem<T> getProblem() {
+	return m_problem;
+    }
+
+    @Override
+    public Number getValue(T variable) {
+	Preconditions.checkNotNull(variable);
+	return m_primalValues.get(variable);
+    }
+
+    @Override
     public Set<T> getVariables() {
 	return Collections.unmodifiableSet(m_primalValues.keySet());
+    }
+
+    @Override
+    public int hashCode() {
+	final Equivalence<LpSolution<T>> solutionEquivalence = LpSolverUtils.getSolutionEquivalence();
+	return solutionEquivalence.hash(this);
+    }
+
+    @Override
+    public String toString() {
+	return LpSolverUtils.getAsString(this);
     }
 
 }

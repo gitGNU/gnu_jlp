@@ -58,10 +58,10 @@ import com.google.common.collect.Maps;
  */
 public class SolverMiniSat<T> extends AbstractLpSolver<T> {
 
-    private MiniSat m_minisat;
-    private BiMap<T, Integer> m_variablesIds;
     private int m_coefficients[];
     private int m_literals[];
+    private MiniSat m_minisat;
+    private BiMap<T, Integer> m_variablesIds;
 
     /**
      * Creates a new solver instance.
@@ -74,47 +74,59 @@ public class SolverMiniSat<T> extends AbstractLpSolver<T> {
     }
 
     @Override
-    protected LpResultStatus solveUnderlying() throws LpSolverException {
-	lazyInitSolver();
-
-	final TimingHelper timingHelper = new TimingHelper();
-	timingHelper.start();
-	m_minisat.solve();
-	timingHelper.stop();
-
-	final LpResultStatus result;
-	if (m_minisat.okay()) {
-	    result = LpResultStatus.FEASIBLE;
-	} else {
-	    result = LpResultStatus.INFEASIBLE;
-	}
-
-	if (result.isFeasible()) {
-	    final LpSolutionImpl<T> solution = new LpSolutionImpl<T>(getProblem());
-
-	    for (Entry<Integer, T> entry : m_variablesIds.inverse().entrySet()) {
-		int id = entry.getKey().intValue();
-		T variable = entry.getValue();
-
-		final boolean b = m_minisat.valueOf(id);
-		final Number value = b ? Integer.valueOf(1) : Integer.valueOf(0);
-
-		solution.putValue(variable, value);
-	    }
-	    setSolution(solution);
-	}
-
-	m_lastDuration = timingHelper.getDuration();
-
-	close();
-
-	return result;
-    }
-
-    @Override
     public void close() {
 	m_variablesIds = null;
 	m_minisat = null;
+    }
+
+    private int getAsInteger(double number, LpDirection optType) throws LpSolverException {
+	final int intValue = LpSolverUtils.getAsInteger(number);
+	switch (optType) {
+	case MIN:
+	    return intValue;
+	case MAX:
+	    return -intValue;
+	}
+	throw new IllegalStateException("Unknown opt type.");
+    }
+
+    /**
+     * Retrieves the minisat string equivalent of the given operator.
+     * 
+     * @param operator
+     *            not <code>null</code>.
+     * @return not <code>null</code>.
+     */
+    public String getAsMinisatString(LpOperator operator) {
+	Preconditions.checkNotNull(operator);
+	switch (operator) {
+	case LE:
+	    return "<=";
+	case GE:
+	    return ">=";
+	case EQ:
+	    return "=";
+	}
+	throw new IllegalStateException("Unknown operator.");
+    }
+
+    @Override
+    public LpFileFormat getPreferredFormat() throws LpSolverException {
+	throw new LpSolverException("Not implemented yet.");
+    }
+
+    @Override
+    public Object getUnderlyingSolver() throws LpSolverException {
+	lazyInitSolver();
+	return m_minisat;
+    }
+
+    private int getVariableId(final Object variable) throws LpSolverException {
+	final Integer id = m_variablesIds.get(variable);
+	if (id == null) {
+	    throw new LpSolverException("Variable not declared: " + variable + ".");
+	}
+	return id.intValue();
     }
 
     /**
@@ -125,25 +137,6 @@ public class SolverMiniSat<T> extends AbstractLpSolver<T> {
      */
     public BiMap<T, Integer> getVariablesIds() {
 	return m_variablesIds;
-    }
-
-    private void setParameters() throws LpSolverException {
-	final HashMap<Enum<?>, Object> mandatory = Maps.newHashMap();
-	mandatory.put(LpDoubleParameter.MAX_WALL_SECONDS, null);
-	mandatory.put(LpDoubleParameter.MAX_CPU_SECONDS, null);
-	LpSolverUtils.assertConform(getParametersView(), mandatory);
-	// minisat.setVerbose(value);
-    }
-
-    @Override
-    public void writeProblem(LpFileFormat format, String file, boolean addExtension) throws LpSolverException {
-	throw new LpSolverException("Not implemented yet.");
-    }
-
-    @Override
-    public Object getUnderlyingSolver() throws LpSolverException {
-	lazyInitSolver();
-	return m_minisat;
     }
 
     private void lazyInitSolver() throws LpSolverException {
@@ -197,50 +190,6 @@ public class SolverMiniSat<T> extends AbstractLpSolver<T> {
 	}
     }
 
-    private void populateCoefficients(LpLinear<T> terms, LpDirection optType) throws LpSolverException {
-	m_coefficients = new int[terms.size()];
-	m_literals = new int[terms.size()];
-	int i = 0;
-	for (LpTerm<T> term : terms) {
-	    final int idInt = getVariableId(term.getVariable());
-	    final int coefficient = getAsInteger(term.getCoefficient(), optType);
-	    m_literals[i] = idInt;// + 1;
-	    m_coefficients[i] = coefficient;
-	    ++i;
-	}
-    }
-
-    /**
-     * Retrieves the minisat string equivalent of the given operator.
-     * 
-     * @param operator
-     *            not <code>null</code>.
-     * @return not <code>null</code>.
-     */
-    public String getAsMinisatString(LpOperator operator) {
-	Preconditions.checkNotNull(operator);
-	switch (operator) {
-	case LE:
-	    return "<=";
-	case GE:
-	    return ">=";
-	case EQ:
-	    return "=";
-	}
-	throw new IllegalStateException("Unknown operator.");
-    }
-
-    private int getAsInteger(double number, LpDirection optType) throws LpSolverException {
-	final int intValue = LpSolverUtils.getAsInteger(number);
-	switch (optType) {
-	case MIN:
-	    return intValue;
-	case MAX:
-	    return -intValue;
-	}
-	throw new IllegalStateException("Unknown opt type.");
-    }
-
     private void populateCoefficients(LpLinear<T> terms) throws LpSolverException {
 	m_coefficients = new int[terms.size()];
 	m_literals = new int[terms.size()];
@@ -254,16 +203,67 @@ public class SolverMiniSat<T> extends AbstractLpSolver<T> {
 	}
     }
 
-    private int getVariableId(final Object variable) throws LpSolverException {
-	final Integer id = m_variablesIds.get(variable);
-	if (id == null) {
-	    throw new LpSolverException("Variable not declared: " + variable + ".");
+    private void populateCoefficients(LpLinear<T> terms, LpDirection optType) throws LpSolverException {
+	m_coefficients = new int[terms.size()];
+	m_literals = new int[terms.size()];
+	int i = 0;
+	for (LpTerm<T> term : terms) {
+	    final int idInt = getVariableId(term.getVariable());
+	    final int coefficient = getAsInteger(term.getCoefficient(), optType);
+	    m_literals[i] = idInt;// + 1;
+	    m_coefficients[i] = coefficient;
+	    ++i;
 	}
-	return id.intValue();
+    }
+
+    private void setParameters() throws LpSolverException {
+	final HashMap<Enum<?>, Object> mandatory = Maps.newHashMap();
+	mandatory.put(LpDoubleParameter.MAX_WALL_SECONDS, null);
+	mandatory.put(LpDoubleParameter.MAX_CPU_SECONDS, null);
+	LpSolverUtils.assertConform(getParametersView(), mandatory);
+	// minisat.setVerbose(value);
     }
 
     @Override
-    public LpFileFormat getPreferredFormat() throws LpSolverException {
+    protected LpResultStatus solveUnderlying() throws LpSolverException {
+	lazyInitSolver();
+
+	final TimingHelper timingHelper = new TimingHelper();
+	timingHelper.start();
+	m_minisat.solve();
+	timingHelper.stop();
+
+	final LpResultStatus result;
+	if (m_minisat.okay()) {
+	    result = LpResultStatus.FEASIBLE;
+	} else {
+	    result = LpResultStatus.INFEASIBLE;
+	}
+
+	if (result.isFeasible()) {
+	    final LpSolutionImpl<T> solution = new LpSolutionImpl<T>(getProblem());
+
+	    for (Entry<Integer, T> entry : m_variablesIds.inverse().entrySet()) {
+		int id = entry.getKey().intValue();
+		T variable = entry.getValue();
+
+		final boolean b = m_minisat.valueOf(id);
+		final Number value = b ? Integer.valueOf(1) : Integer.valueOf(0);
+
+		solution.putValue(variable, value);
+	    }
+	    setSolution(solution);
+	}
+
+	m_lastDuration = timingHelper.getDuration();
+
+	close();
+
+	return result;
+    }
+
+    @Override
+    public void writeProblem(LpFileFormat format, String file, boolean addExtension) throws LpSolverException {
 	throw new LpSolverException("Not implemented yet.");
     }
 

@@ -37,20 +37,6 @@ import org.decisiondeck.jlp.LpConstraint;
 public interface LpSolutionAlone<T> {
 
     /**
-     * Returns the objective value.
-     * 
-     * @return <code>null</code> if not set.
-     */
-    public Number getObjectiveValue();
-
-    /**
-     * Retrieves a copy or read-only view of the variables which have their primal value set.
-     * 
-     * @return not <code>null</code>, but may be empty.
-     */
-    public Set<T> getVariables();
-
-    /**
      * <p>
      * A convenience method to return the primal value of the given variable as a boolean. This is <code>true</code> iff
      * the value is one ± 1e-6, <code>false</code> iff the value is zero ± 1e-6. Otherwize a runtime exception is
@@ -69,13 +55,12 @@ public interface LpSolutionAlone<T> {
     public boolean getBooleanValue(T variable);
 
     /**
-     * Returns the primal value of the variable, if it is known.
+     * Retrieves a copy or read-only view of the primal constraints, i.e. dual variables, which have their dual value
+     * set.
      * 
-     * @param variable
-     *            not <code>null</code>.
-     * @return <code>null</code> iff the variable has no associated primal value.
+     * @return not <code>null</code>, but may be empty.
      */
-    public Number getValue(T variable);
+    public Set<LpConstraint<T>> getConstraints();
 
     /**
      * Returns, if it is known, the value corresponding to the dual variable associated to the given primal constraint.
@@ -87,11 +72,26 @@ public interface LpSolutionAlone<T> {
     public Number getDualValue(LpConstraint<T> constraint);
 
     /**
-     * Retrieves a copy or read-only view of the primal constraints, i.e. dual variables, which have their dual value
-     * set.
+     * Returns the objective value.
+     * 
+     * @return <code>null</code> if not set.
+     */
+    public Number getObjectiveValue();
+
+    /**
+     * Returns the primal value of the variable, if it is known.
+     * 
+     * @param variable
+     *            not <code>null</code>.
+     * @return <code>null</code> iff the variable has no associated primal value.
+     */
+    public Number getValue(T variable);
+
+    /**
+     * Retrieves a copy or read-only view of the variables which have their primal value set.
      * 
      * @return not <code>null</code>, but may be empty.
      */
-    public Set<LpConstraint<T>> getConstraints();
+    public Set<T> getVariables();
 
 }

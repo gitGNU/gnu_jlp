@@ -27,6 +27,10 @@ import com.google.common.collect.ForwardingSet;
 public class LpLinearImmutable<T> extends ForwardingSet<LpTerm<T>> implements LpLinear<T> {
     private final LpLinear<T> m_delegate;
 
+    public LpLinearImmutable(Collection<LpTerm<T>> terms) {
+	m_delegate = new LpLinearImpl<T>(terms);
+    }
+
     /**
      * @param source
      *            not <code>null</code>.
@@ -38,10 +42,6 @@ public class LpLinearImmutable<T> extends ForwardingSet<LpTerm<T>> implements Lp
 	} else {
 	    m_delegate = new LpLinearImpl<T>(source);
 	}
-    }
-
-    public LpLinearImmutable(Collection<LpTerm<T>> terms) {
-	m_delegate = new LpLinearImpl<T>(terms);
     }
 
     @Override

@@ -33,21 +33,6 @@ import org.junit.Test;
 // for missing javadoc.
 @SuppressWarnings("all")
 public class TestLpSolve {
-    @Test(expected = IllegalStateException.class)
-    // for missing javadoc.
-    @SuppressWarnings("all")
-    public void testSolveDirNotSet() throws Exception {
-	LpSolverFactory factory = new LpSolverFactory();
-	factory.setImpl(LpSolverType.LP_SOLVE);
-
-	final LpProblem<String> problem = LpProblemExamples.getIntOneFourThree();
-	problem.setObjectiveDirection(null);
-
-	LpSolver<String> solver = factory.newSolver(String.class);
-	solver.setProblem(problem);
-	solver.solve();
-    }
-
     @Test
     // for missing javadoc.
     @SuppressWarnings("all")
@@ -74,6 +59,21 @@ public class TestLpSolve {
 
 	final LpSolution<String> solutionLowX = solver.getSolution();
 	assertEquals(LpProblemExamples.getIntOneFourThreeLowXSolution(), solutionLowX);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    // for missing javadoc.
+    @SuppressWarnings("all")
+    public void testSolveDirNotSet() throws Exception {
+	LpSolverFactory factory = new LpSolverFactory();
+	factory.setImpl(LpSolverType.LP_SOLVE);
+
+	final LpProblem<String> problem = LpProblemExamples.getIntOneFourThree();
+	problem.setObjectiveDirection(null);
+
+	LpSolver<String> solver = factory.newSolver(String.class);
+	solver.setProblem(problem);
+	solver.solve();
     }
 
     @Test(expected = IllegalArgumentException.class)

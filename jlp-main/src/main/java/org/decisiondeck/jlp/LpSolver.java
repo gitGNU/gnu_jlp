@@ -110,6 +110,117 @@ import com.google.common.base.Function;
 public interface LpSolver<T> {
 
     /**
+     * Must be used after a call to {@link #getUnderlyingSolver()} to close the solver and release possibly acquired
+     * resources after use. If the underlying solver is not used directly by the user, it is not necessary to call this
+     * method. If there is nothing to close (e.g. because everything is closed already or no resources have been
+     * acquired yet), this method has no effect.
+     * 
+     * @throws LpSolverException
+     *             if a solver-specific exception is thrown.
+     */
+    public void close() throws LpSolverException;
+
+    /**
+     * Retrieves the maximum difference between a bound and an observed value, after a solve, that will be automatically
+     * corrected by this solver. The default is <code>null</code>.
+     * 
+     * @return <code>null</code> if this solver does not correct the obtained solutions.
+     */
+    public Double getAutoCorrectThreshold();
+
+    /**
+     * The duration of solving the bound problem (the last time it was solved). If an error occurred, this is the
+     * duration until the error.
+     * 
+     * @return <code>null</code> iff not executed yet.
+     */
+    public LpSolverDuration getDuration();
+
+    /**
+     * Retrieves a view that allow to query and set the values of the parameters of this solver instance.
+     * 
+     * @return not <code>null</code>, a view that reads and writes through to this object.
+     */
+    public LpParameters getParametersView();
+
+    /**
+     * Retrieves the format this solver will use when asked to write a problem file with a format of
+     * {@link LpFileFormat#SOLVER_PREFERRED}.
+     * 
+     * @return <code>null</code> if the solver preferred format is not in the set of enum constants in
+     *         {@link LpFileFormat}.
+     * @throws LpSolverException
+     *             if the solver does not implement writing problem files.
+     */
+    public LpFileFormat getPreferredFormat() throws LpSolverException;
+
+    /**
+     * Retrieves a writable view that allows to read and set the problem bound to this solver instance.
+     * 
+     * @return not <code>null</code>.
+     */
+    public LpProblem<T> getProblem();
+
+    /**
+     * Retrieves the last results status obtained from solving a problem. This is the same as the result status returned
+     * from the {@link #solve()} method.
+     * 
+     * @return {@code null} iff no problem solving has been attempted yet.
+     */
+    public LpResultStatus getResultStatus();
+
+    /**
+     * Retrieves one solution found to the last problem solved. If the result of the solve is optimal, the returned
+     * solution is an optimal solution.
+     * 
+     * @return <code>null</code> iff no feasible solution to the problem have been found (yet). Immutable.
+     */
+    public LpSolution<T> getSolution();
+
+    public Object getUnderlyingSolver() throws LpSolverException;
+
+    /**
+     * @return possibly <code>null</code>.
+     */
+    public Function<T, String> getVariableNamer();
+
+    /**
+     * Sets the maximum difference between a bound and an observed value, after a solve, that will be automatically
+     * corrected by this solver.
+     * 
+     * @param autoCorrectThreshold
+     *            <code>null</code> if this solver should not correct the obtained solutions.
+     */
+    public void setAutoCorrectThreshold(Double autoCorrectThreshold);
+
+    /**
+     * <p>
+     * Sets the parameters this solver will use to the given parameters. Any value already set in this object is lost.
+     * Thus if the given parameters are set to the default value for some parameter p and that parameter has a value set
+     * in this object before the method is called, the value of p after the method returns is the default value.
+     * </p>
+     * <p>
+     * The given parameters values are copied in this object, no reference is kept to the given object.
+     * </p>
+     * 
+     * @param parameters
+     *            not <code>null</code>.
+     * @return <code>true</code> iff this object state changed as a result of this call. Equivalently,
+     *         <code>false</code> iff the given parameter values are identical to the current values.
+     */
+    public boolean setParameters(LpParameters parameters);
+
+    /**
+     * Copies the given problem data into the problem bound to this solver. Any information possibly existing in this
+     * object problem is lost.
+     * 
+     * @param problem
+     *            not <code>null</code>.
+     * @return <code>true</code> iff the state of the bound problem changed as a result of this method execution.
+     */
+    public boolean setProblem(LpProblem<T> problem);
+
+    /**
      * <p>
      * If not <code>null</code>, this solver will automatically associates names to variables in the bound problem for
      * which no name has been specified, using the given namer, when creating the problem in the underlying solver.
@@ -133,44 +244,6 @@ public interface LpSolver<T> {
     public void setVariableNamer(Function<T, String> variableNamer);
 
     /**
-     * @return possibly <code>null</code>.
-     */
-    public Function<T, String> getVariableNamer();
-
-    /**
-     * Writes the current problem bound to this solver to a file.
-     * 
-     * @param format
-     *            not <code>null</code>.
-     * @param file
-     *            not <code>null</code>.
-     * @param addExtension
-     *            <code>true</code> to automatically add an appropriate extension to the given path.
-     * @throws LpSolverException
-     *             if a solver-specific exception occurs, or the solver does not implement writing problem files, or
-     *             does not support the specified format.
-     */
-    public void writeProblem(LpFileFormat format, String file, boolean addExtension) throws LpSolverException;
-
-    /**
-     * Copies the given problem data into the problem bound to this solver. Any information possibly existing in this
-     * object problem is lost.
-     * 
-     * @param problem
-     *            not <code>null</code>.
-     * @return <code>true</code> iff the state of the bound problem changed as a result of this method execution.
-     */
-    public boolean setProblem(LpProblem<T> problem);
-
-    /**
-     * Retrieves the last results status obtained from solving a problem. This is the same as the result status returned
-     * from the {@link #solve()} method.
-     * 
-     * @return {@code null} iff no problem solving has been attempted yet.
-     */
-    public LpResultStatus getResultStatus();
-
-    /**
      * Solves the bound optimization problem. If the bound problem has an objective function set, the optimization
      * direction must be set as well, and conversely.
      * 
@@ -186,91 +259,18 @@ public interface LpSolver<T> {
     public LpResultStatus solve() throws LpSolverException;
 
     /**
-     * Retrieves a writable view that allows to read and set the problem bound to this solver instance.
+     * Writes the current problem bound to this solver to a file.
      * 
-     * @return not <code>null</code>.
-     */
-    public LpProblem<T> getProblem();
-
-    /**
-     * The duration of solving the bound problem (the last time it was solved). If an error occurred, this is the
-     * duration until the error.
-     * 
-     * @return <code>null</code> iff not executed yet.
-     */
-    public LpSolverDuration getDuration();
-
-    /**
-     * <p>
-     * Sets the parameters this solver will use to the given parameters. Any value already set in this object is lost.
-     * Thus if the given parameters are set to the default value for some parameter p and that parameter has a value set
-     * in this object before the method is called, the value of p after the method returns is the default value.
-     * </p>
-     * <p>
-     * The given parameters values are copied in this object, no reference is kept to the given object.
-     * </p>
-     * 
-     * @param parameters
+     * @param format
      *            not <code>null</code>.
-     * @return <code>true</code> iff this object state changed as a result of this call. Equivalently,
-     *         <code>false</code> iff the given parameter values are identical to the current values.
-     */
-    public boolean setParameters(LpParameters parameters);
-
-    public Object getUnderlyingSolver() throws LpSolverException;
-
-    /**
-     * Must be used after a call to {@link #getUnderlyingSolver()} to close the solver and release possibly acquired
-     * resources after use. If the underlying solver is not used directly by the user, it is not necessary to call this
-     * method. If there is nothing to close (e.g. because everything is closed already or no resources have been
-     * acquired yet), this method has no effect.
-     * 
+     * @param file
+     *            not <code>null</code>.
+     * @param addExtension
+     *            <code>true</code> to automatically add an appropriate extension to the given path.
      * @throws LpSolverException
-     *             if a solver-specific exception is thrown.
+     *             if a solver-specific exception occurs, or the solver does not implement writing problem files, or
+     *             does not support the specified format.
      */
-    public void close() throws LpSolverException;
-
-    /**
-     * Retrieves a view that allow to query and set the values of the parameters of this solver instance.
-     * 
-     * @return not <code>null</code>, a view that reads and writes through to this object.
-     */
-    public LpParameters getParametersView();
-
-    /**
-     * Retrieves one solution found to the last problem solved. If the result of the solve is optimal, the returned
-     * solution is an optimal solution.
-     * 
-     * @return <code>null</code> iff no feasible solution to the problem have been found (yet). Immutable.
-     */
-    public LpSolution<T> getSolution();
-
-    /**
-     * Retrieves the format this solver will use when asked to write a problem file with a format of
-     * {@link LpFileFormat#SOLVER_PREFERRED}.
-     * 
-     * @return <code>null</code> if the solver preferred format is not in the set of enum constants in
-     *         {@link LpFileFormat}.
-     * @throws LpSolverException
-     *             if the solver does not implement writing problem files.
-     */
-    public LpFileFormat getPreferredFormat() throws LpSolverException;
-
-    /**
-     * Retrieves the maximum difference between a bound and an observed value, after a solve, that will be automatically
-     * corrected by this solver. The default is <code>null</code>.
-     * 
-     * @return <code>null</code> if this solver does not correct the obtained solutions.
-     */
-    public Double getAutoCorrectThreshold();
-
-    /**
-     * Sets the maximum difference between a bound and an observed value, after a solve, that will be automatically
-     * corrected by this solver.
-     * 
-     * @param autoCorrectThreshold
-     *            <code>null</code> if this solver should not correct the obtained solutions.
-     */
-    public void setAutoCorrectThreshold(Double autoCorrectThreshold);
+    public void writeProblem(LpFileFormat format, String file, boolean addExtension) throws LpSolverException;
 
 }

@@ -18,23 +18,23 @@
 package org.decisiondeck.jlp;
 
 public enum LpResultStatus {
-    /**
+    ERROR_NO_SOLUTION, /**
+     * 
+     * 
+     * 
+     * 
+     * 
+     * An error happened, or an unknown status was returned from the solver, but a feasible, non
+     * necessarily optimal, solution has been found.
+     */
+    ERROR_WITH_SOLUTION, FEASIBLE, INFEASIBLE, INFEASIBLE_OR_UNBOUNDED, MEMORY_LIMIT_REACHED_WITH_SOLUTION, /**
+     * Because
+     * of user set limit or out-of-memory status.
+     */
+    MEMORY_LIMIT_REACHED_WITHOUT_SOLUTION, /**
      * Optimal or optimal to the allowed imprecision.
      */
-    OPTIMAL, TIME_LIMIT_REACHED_NO_SOLUTION, TIME_LIMIT_REACHED_WITH_SOLUTION, /**
-     * Because of user set limit or
-     * out-of-memory status.
-     */
-    MEMORY_LIMIT_REACHED_WITHOUT_SOLUTION, MEMORY_LIMIT_REACHED_WITH_SOLUTION, INFEASIBLE_OR_UNBOUNDED, INFEASIBLE, UNBOUNDED, FEASIBLE, ERROR_NO_SOLUTION, /**
-     * 
-     * 
-     * 
-     * 
-     * 
-     * An error happened, or an unknown status was returned from the solver, but a feasible, non necessarily optimal,
-     * solution has been found.
-     */
-    ERROR_WITH_SOLUTION;
+    OPTIMAL, TIME_LIMIT_REACHED_NO_SOLUTION, TIME_LIMIT_REACHED_WITH_SOLUTION, UNBOUNDED;
 
     /**
      * Tests whether this return status implies that a feasible solution has been found.

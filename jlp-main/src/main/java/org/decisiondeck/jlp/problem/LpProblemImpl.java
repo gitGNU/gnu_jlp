@@ -49,64 +49,31 @@ import com.google.common.collect.Sets;
  */
 public class LpProblemImpl<T> implements LpProblem<T> {
 
+    private final Set<LpConstraint<T>> m_constraints = Sets.newLinkedHashSet();
+
     /**
      * Never <code>null</code>.
      */
     private String m_name;
 
-    @Override
-    public String getName() {
-	return m_name;
-    }
-
-    @Override
-    public int hashCode() {
-	final Equivalence<LpProblem<T>> problemEquivalence = LpSolverUtils.getProblemEquivalence();
-	return problemEquivalence.hash(this);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-	if (!(obj instanceof LpProblem<?>)) {
-	    return false;
-	}
-	LpProblem<?> p2 = (LpProblem<?>) obj;
-	return LpSolverUtils.equivalent(this, p2);
-    }
-
-    @Override
-    public boolean setName(String name) {
-	final String newName;
-	if (name == null) {
-	    newName = "";
-	} else {
-	    newName = name;
-	}
-	final boolean equivalent = Equivalences.equals().equivalent(m_name, newName);
-	if (equivalent) {
-	    return false;
-	}
-	m_name = name;
-	return true;
-    }
-
     private LpLinear<T> m_objectiveFunction;
-    private LpDirection m_optType;
-    private final Set<LpConstraint<T>> m_constraints = Sets.newLinkedHashSet();
 
+    private LpDirection m_optType;
+
+    private final Multiset<LpVariableType> m_varCount = EnumMultiset.create(LpVariableType.class);
+
+    private final Map<T, Number> m_varLowerBound = Maps.newHashMap();
+    /**
+     * Contains no <code>null</code> keys, no <code>null</code> values, no empty string values.
+     */
+    private final Map<T, String> m_varNames = Maps.newHashMap();
     /**
      * No <code>null</code> key or value. Each variable in this problem has a type, thus this map contains all the
      * variables in the problem.
      */
     private final Map<T, LpVariableType> m_varType = Maps.newLinkedHashMap();
 
-    private final Multiset<LpVariableType> m_varCount = EnumMultiset.create(LpVariableType.class);
-    private final Map<T, Number> m_varLowerBound = Maps.newHashMap();
     private final Map<T, Number> m_varUpperBound = Maps.newHashMap();
-    /**
-     * Contains no <code>null</code> keys, no <code>null</code> values, no empty string values.
-     */
-    private final Map<T, String> m_varNames = Maps.newHashMap();
 
     public LpProblemImpl() {
 	m_name = "";
@@ -126,48 +93,17 @@ public class LpProblemImpl<T> implements LpProblem<T> {
     }
 
     @Override
-    public LpObjective<T> getObjective() {
-	return new LpObjective<T>(m_objectiveFunction, m_optType);
+    public boolean add(LpConstraint<T> constraint) {
+	return addInternal(constraint);
     }
 
     @Override
-    public boolean setObjective(LpLinear<T> objectiveFunction, LpDirection direction) {
-	final boolean equivFct = Equivalences.equals().equivalent(m_objectiveFunction, objectiveFunction);
-	if (!equivFct) {
-	    if (objectiveFunction == null) {
-		m_objectiveFunction = null;
-	    } else {
-		assertVariablesExist(objectiveFunction);
-		m_objectiveFunction = new LpLinearImmutable<T>(objectiveFunction);
-	    }
-	}
-	final boolean equalDirs = m_optType == direction;
-	m_optType = direction;
-	return !equivFct || !equalDirs;
-    }
-
-    private void assertVariablesExist(LpLinear<T> linear) {
-	for (LpTerm<T> term : linear) {
-	    final T variable = term.getVariable();
-	    Preconditions.checkArgument(m_varType.containsKey(variable));
-	}
-    }
-
-    @Override
-    public boolean setObjectiveDirection(LpDirection optType) {
-	final boolean equalDir = m_optType == optType;
-	m_optType = optType;
-	return !equalDir;
-    }
-
-    @Override
-    public Set<LpConstraint<T>> getConstraints() {
-	return Collections.unmodifiableSet(m_constraints);
-    }
-
-    @Override
-    public Set<T> getVariables() {
-	return Collections.unmodifiableSet(m_varType.keySet());
+    public boolean add(String name, LpLinear<T> lhs, LpOperator operator, double rhs) {
+	Preconditions.checkNotNull(lhs, "" + operator + rhs);
+	Preconditions.checkNotNull(operator, "" + lhs + rhs);
+	Preconditions.checkArgument(!Double.isNaN(rhs) && !Double.isInfinite(rhs));
+	LpConstraint<T> constraint = new LpConstraint<T>(name, lhs, operator, rhs);
+	return addInternal(constraint);
     }
 
     /**
@@ -192,61 +128,67 @@ public class LpProblemImpl<T> implements LpProblem<T> {
     }
 
     @Override
-    public boolean add(LpConstraint<T> constraint) {
-	return addInternal(constraint);
-    }
-
-    @Override
-    public boolean add(String name, LpLinear<T> lhs, LpOperator operator, double rhs) {
-	Preconditions.checkNotNull(lhs, "" + operator + rhs);
-	Preconditions.checkNotNull(operator, "" + lhs + rhs);
-	Preconditions.checkArgument(!Double.isNaN(rhs) && !Double.isInfinite(rhs));
-	LpConstraint<T> constraint = new LpConstraint<T>(name, lhs, operator, rhs);
-	return addInternal(constraint);
-    }
-
-    @Override
-    public LpVariableType getVarType(T variable) {
-	Preconditions.checkArgument(m_varType.containsKey(variable));
-	return m_varType.get(variable);
-    }
-
-    @Override
-    public boolean setVarType(T variable, LpVariableType type) {
-	Preconditions.checkNotNull(variable, type);
-	Preconditions.checkNotNull(type, variable);
-	final LpVariableType previous = setVarTypeInternal(variable, type);
-	return previous == null || previous != type;
-    }
-
-    private LpVariableType setVarTypeInternal(T variable, LpVariableType type) {
-	Preconditions.checkNotNull(type);
-	final LpVariableType previous = m_varType.put(variable, type);
-	if (previous != null && previous != type) {
-	    final boolean removed = m_varCount.remove(previous);
-	    Preconditions.checkState(removed);
+    public boolean addVariable(T variable) {
+	if (m_varType.containsKey(variable)) {
+	    return false;
 	}
-	if (previous == null || previous != type) {
-	    m_varCount.add(type);
+	setVarTypeInternal(variable, LpVariableType.REAL);
+	return true;
+    }
+
+    private void assertVariablesExist(LpLinear<T> linear) {
+	for (LpTerm<T> term : linear) {
+	    final T variable = term.getVariable();
+	    Preconditions.checkArgument(m_varType.containsKey(variable));
 	}
-	return previous;
     }
 
     @Override
-    public boolean setVarName(T variable, String name) {
-	Preconditions.checkNotNull(variable, "" + name);
-	final boolean added = addVariable(variable);
+    public void clear() {
+	m_constraints.clear();
+	m_name = "";
+	m_objectiveFunction = null;
+	m_optType = null;
+	m_varCount.clear();
+	m_varNames.clear();
+	m_varType.clear();
+	m_varLowerBound.clear();
+	m_varUpperBound.clear();
+    }
 
-	final String previous;
-	final boolean changed;
-	if (name == null || name.isEmpty()) {
-	    previous = m_varNames.remove(variable);
-	    changed = previous != null;
-	} else {
-	    previous = m_varNames.put(variable, name);
-	    changed = !name.equals(previous);
+    @Override
+    public boolean equals(Object obj) {
+	if (!(obj instanceof LpProblem<?>)) {
+	    return false;
 	}
-	return added || changed;
+	LpProblem<?> p2 = (LpProblem<?>) obj;
+	return LpSolverUtils.equivalent(this, p2);
+    }
+
+    @Override
+    public Set<LpConstraint<T>> getConstraints() {
+	return Collections.unmodifiableSet(m_constraints);
+    }
+
+    @Override
+    public LpDimension getDimension() {
+	return new LpDimension(m_varCount.count(LpVariableType.BOOL), m_varCount.count(LpVariableType.INT),
+		m_varCount.count(LpVariableType.REAL), getConstraints().size());
+    }
+
+    @Override
+    public String getName() {
+	return m_name;
+    }
+
+    @Override
+    public LpObjective<T> getObjective() {
+	return new LpObjective<T>(m_objectiveFunction, m_optType);
+    }
+
+    @Override
+    public Set<T> getVariables() {
+	return Collections.unmodifiableSet(m_varType.keySet());
     }
 
     @Override
@@ -256,9 +198,67 @@ public class LpProblemImpl<T> implements LpProblem<T> {
     }
 
     @Override
+    public String getVarName(T variable) {
+	Preconditions.checkArgument(m_varType.containsKey(variable));
+	final String name = m_varNames.get(variable);
+	return name == null ? "" : name;
+    }
+
+    @Override
+    public LpVariableType getVarType(T variable) {
+	Preconditions.checkArgument(m_varType.containsKey(variable));
+	return m_varType.get(variable);
+    }
+
+    @Override
     public Number getVarUpperBound(T variable) {
 	Preconditions.checkArgument(m_varType.containsKey(variable));
 	return m_varUpperBound.get(variable);
+    }
+
+    @Override
+    public int hashCode() {
+	final Equivalence<LpProblem<T>> problemEquivalence = LpSolverUtils.getProblemEquivalence();
+	return problemEquivalence.hash(this);
+    }
+
+    @Override
+    public boolean setName(String name) {
+	final String newName;
+	if (name == null) {
+	    newName = "";
+	} else {
+	    newName = name;
+	}
+	final boolean equivalent = Equivalences.equals().equivalent(m_name, newName);
+	if (equivalent) {
+	    return false;
+	}
+	m_name = name;
+	return true;
+    }
+
+    @Override
+    public boolean setObjective(LpLinear<T> objectiveFunction, LpDirection direction) {
+	final boolean equivFct = Equivalences.equals().equivalent(m_objectiveFunction, objectiveFunction);
+	if (!equivFct) {
+	    if (objectiveFunction == null) {
+		m_objectiveFunction = null;
+	    } else {
+		assertVariablesExist(objectiveFunction);
+		m_objectiveFunction = new LpLinearImmutable<T>(objectiveFunction);
+	    }
+	}
+	final boolean equalDirs = m_optType == direction;
+	m_optType = direction;
+	return !equivFct || !equalDirs;
+    }
+
+    @Override
+    public boolean setObjectiveDirection(LpDirection optType) {
+	final boolean equalDir = m_optType == optType;
+	m_optType = optType;
+	return !equalDir;
     }
 
     @Override
@@ -293,43 +293,46 @@ public class LpProblemImpl<T> implements LpProblem<T> {
     }
 
     @Override
+    public boolean setVarName(T variable, String name) {
+	Preconditions.checkNotNull(variable, "" + name);
+	final boolean added = addVariable(variable);
+
+	final String previous;
+	final boolean changed;
+	if (name == null || name.isEmpty()) {
+	    previous = m_varNames.remove(variable);
+	    changed = previous != null;
+	} else {
+	    previous = m_varNames.put(variable, name);
+	    changed = !name.equals(previous);
+	}
+	return added || changed;
+    }
+
+    @Override
+    public boolean setVarType(T variable, LpVariableType type) {
+	Preconditions.checkNotNull(variable, type);
+	Preconditions.checkNotNull(type, variable);
+	final LpVariableType previous = setVarTypeInternal(variable, type);
+	return previous == null || previous != type;
+    }
+
+    private LpVariableType setVarTypeInternal(T variable, LpVariableType type) {
+	Preconditions.checkNotNull(type);
+	final LpVariableType previous = m_varType.put(variable, type);
+	if (previous != null && previous != type) {
+	    final boolean removed = m_varCount.remove(previous);
+	    Preconditions.checkState(removed);
+	}
+	if (previous == null || previous != type) {
+	    m_varCount.add(type);
+	}
+	return previous;
+    }
+
+    @Override
     public String toString() {
 	return LpSolverUtils.getAsString(this);
-    }
-
-    @Override
-    public String getVarName(T variable) {
-	Preconditions.checkArgument(m_varType.containsKey(variable));
-	final String name = m_varNames.get(variable);
-	return name == null ? "" : name;
-    }
-
-    @Override
-    public boolean addVariable(T variable) {
-	if (m_varType.containsKey(variable)) {
-	    return false;
-	}
-	setVarTypeInternal(variable, LpVariableType.REAL);
-	return true;
-    }
-
-    @Override
-    public LpDimension getDimension() {
-	return new LpDimension(m_varCount.count(LpVariableType.BOOL), m_varCount.count(LpVariableType.INT),
-		m_varCount.count(LpVariableType.REAL), getConstraints().size());
-    }
-
-    @Override
-    public void clear() {
-	m_constraints.clear();
-	m_name = "";
-	m_objectiveFunction = null;
-	m_optType = null;
-	m_varCount.clear();
-	m_varNames.clear();
-	m_varType.clear();
-	m_varLowerBound.clear();
-	m_varUpperBound.clear();
     }
 
 }

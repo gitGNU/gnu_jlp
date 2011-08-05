@@ -43,14 +43,14 @@ public class CplexLogger extends OutputStream {
     @SuppressWarnings("all")
     // to avoid missing javadoc warnings.
     public enum OutLevel {
-	DEBUG, INFO, WARNING, ERROR;
+	DEBUG, ERROR, INFO, WARNING;
     }
 
     private static final Logger s_logger = LoggerFactory.getLogger(CplexLogger.class);
 
-    private StringWriter m_str;
-
     private final OutLevel m_level;
+
+    private StringWriter m_str;
 
     /**
      * Creates a new logger that will write everything received to the logger bound to this class, with the given level.
@@ -62,15 +62,6 @@ public class CplexLogger extends OutputStream {
 	Preconditions.checkNotNull(outLevel);
 	m_level = outLevel;
 	m_str = new StringWriter();
-    }
-
-    @Override
-    public void write(int b) throws IOException {
-	if (b == '\n') {
-	    flush();
-	} else {
-	    m_str.write(b);
-	}
     }
 
     @Override
@@ -97,6 +88,15 @@ public class CplexLogger extends OutputStream {
 	    }
 	}
 	m_str = new StringWriter();
+    }
+
+    @Override
+    public void write(int b) throws IOException {
+	if (b == '\n') {
+	    flush();
+	} else {
+	    m_str.write(b);
+	}
     }
 
 }

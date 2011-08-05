@@ -31,10 +31,6 @@ public class LpProblemForwarder<T> implements LpProblem<T> {
 
     private final LpProblem<T> m_delegate;
 
-    protected LpProblem<T> delegate() {
-	return m_delegate;
-    }
-
     /**
      * @param delegate
      *            not <code>null</code>.
@@ -50,18 +46,37 @@ public class LpProblemForwarder<T> implements LpProblem<T> {
     }
 
     @Override
-    public LpDimension getDimension() {
-	return m_delegate.getDimension();
-    }
-
-    @Override
     public boolean add(String name, LpLinear<T> lhs, LpOperator operator, double rhs) {
 	return m_delegate.add(name, lhs, operator, rhs);
     }
 
     @Override
+    public boolean addVariable(T variable) {
+	return m_delegate.addVariable(variable);
+    }
+
+    @Override
+    public void clear() {
+	m_delegate.clear();
+    }
+
+    protected LpProblem<T> delegate() {
+	return m_delegate;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+	return m_delegate.equals(obj);
+    }
+
+    @Override
     public Set<LpConstraint<T>> getConstraints() {
 	return m_delegate.getConstraints();
+    }
+
+    @Override
+    public LpDimension getDimension() {
+	return m_delegate.getDimension();
     }
 
     @Override
@@ -100,6 +115,11 @@ public class LpProblemForwarder<T> implements LpProblem<T> {
     }
 
     @Override
+    public int hashCode() {
+	return m_delegate.hashCode();
+    }
+
+    @Override
     public boolean setName(String name) {
 	return m_delegate.setName(name);
     }
@@ -127,26 +147,6 @@ public class LpProblemForwarder<T> implements LpProblem<T> {
     @Override
     public boolean setVarType(T variable, LpVariableType type) {
 	return m_delegate.setVarType(variable, type);
-    }
-
-    @Override
-    public boolean addVariable(T variable) {
-	return m_delegate.addVariable(variable);
-    }
-
-    @Override
-    public void clear() {
-	m_delegate.clear();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-	return m_delegate.equals(obj);
-    }
-
-    @Override
-    public int hashCode() {
-	return m_delegate.hashCode();
     }
 
     @Override

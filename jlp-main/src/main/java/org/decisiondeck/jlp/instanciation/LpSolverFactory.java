@@ -32,11 +32,6 @@ public class LpSolverFactory {
 	m_solverImpl = null;
     }
 
-    public <T> LpSolver<T> newSolver(LpSolverType impl, Class<T> type) throws LpSolverFactoryException {
-	setImpl(impl);
-	return newSolver(type);
-    }
-
     /**
      * <p>
      * A solver implementation must have been specified.
@@ -62,6 +57,11 @@ public class LpSolverFactory {
 	} catch (Exception exc) {
 	    throw new LpSolverFactoryException(exc);
 	}
+    }
+
+    public <T> LpSolver<T> newSolver(LpSolverType impl, Class<T> type) throws LpSolverFactoryException {
+	setImpl(impl);
+	return newSolver(type);
     }
 
     /**
