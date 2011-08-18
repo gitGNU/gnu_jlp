@@ -310,6 +310,13 @@ public class SolverCPLEX<T> extends AbstractLpSolver<T> {
 	} catch (IloException exc) {
 	    throw new LpSolverException(exc);
 	}
+
+	/** Defined from cplex 12.3 onwards. */
+	// try {
+	// cplex.setParam(StringParam.FileEncoding, "UTF-8");
+	// } catch (IloException exc) {
+	// throw new LpSolverException(exc);
+	// }
     }
 
     /**
