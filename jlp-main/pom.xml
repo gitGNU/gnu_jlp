@@ -26,6 +26,11 @@
 	<description>This module contains the main interfaces and classes of JLP. This is a required compile dependency for every project wanting to use JLP.</description>
 	<dependencies>
 		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.6.1</version>
+		</dependency>
+		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>r09</version>
