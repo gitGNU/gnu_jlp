@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Equivalence;
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Joiner.MapJoiner;
 import com.google.common.base.Objects;
@@ -36,7 +37,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 
 public class LpParametersUtils {
     /**
@@ -52,6 +52,11 @@ public class LpParametersUtils {
 	return getEquivalenceRelation().equivalent(a, b);
     }
 
+    /**
+     * TODO check this method
+     * 
+     * @return not <code>null</code>.
+     */
     static public Map<Enum<?>, Object> getAllNullValues() {
 	final HashMap<Enum<?>, Object> nullValues = Maps.newHashMap();
 	nullValues.put(LpDoubleParameter.MAX_WALL_SECONDS, null);
@@ -59,6 +64,8 @@ public class LpParametersUtils {
 	nullValues.put(LpDoubleParameter.MAX_TREE_SIZE_MB, null);
 	nullValues.put(LpIntParameter.MAX_THREADS, null);
 	nullValues.put(LpStringParameter.WORK_DIR, null);
+	nullValues.put(LpObjectParameter.NAMER_VARIABLES, null);
+	nullValues.put(LpObjectParameter.NAMER_VARIABLES_BY_FORMAT, null);
 	return nullValues;
     }
 
@@ -95,19 +102,18 @@ public class LpParametersUtils {
 	    properties.setProperty(parameter.toString(), value == null ? "null" : formatter.format(value));
 	}
 
+	for (LpObjectParameter parameter : LpParametersDefaultValues.getDefaultObjectValues().keySet()) {
+	    final Object value = parameters.getValue(parameter);
+	    properties.setProperty(parameter.toString(), value == null ? "null" : value.toString());
+	}
+
 	return properties;
     }
 
     static public Equivalence<LpParameters> getEquivalenceRelation() {
 	return new Equivalence<LpParameters>() {
 	    @Override
-	    public boolean equivalent(LpParameters a, LpParameters b) {
-		if (a == b) {
-		    return true;
-		}
-		if (a == null || b == null) {
-		    return false;
-		}
+	    public boolean doEquivalent(LpParameters a, LpParameters b) {
 		if (!a.getDoubleParameters().equals(b.getDoubleParameters())) {
 		    return false;
 		}
@@ -117,24 +123,31 @@ public class LpParametersUtils {
 		if (!a.getStringParameters().equals(b.getStringParameters())) {
 		    return false;
 		}
+		if (!a.getObjectParameters().equals(b.getObjectParameters())) {
+		    return false;
+		}
 		return true;
 	    }
 
 	    @Override
-	    public int hash(LpParameters t) {
-		if (t == null) {
-		    return 0;
-		}
-		return Objects.hashCode(t.getDoubleParameters(), t.getIntParameters(), t.getStringParameters());
+	    public int doHash(LpParameters t) {
+		return Objects.hashCode(t.getDoubleParameters(), t.getIntParameters(), t.getStringParameters(),
+			t.getObjectParameters());
 	    }
 	};
     }
 
     public static Set<Enum<?>> getParameters() {
-	final SetView<Enum<?>> doublesAndStrings = Sets.union(LpParametersDefaultValues.getDefaultDoubleValues()
-		.keySet(), LpParametersDefaultValues.getDefaultStringValues().keySet());
-
-	return Sets.union(LpParametersDefaultValues.getDefaultIntValues().keySet(), doublesAndStrings);
+	final Set<Enum<?>> all = Sets.newLinkedHashSet();
+	all.addAll(LpParametersDefaultValues.getDefaultDoubleValues().keySet());
+	all.addAll(LpParametersDefaultValues.getDefaultIntValues().keySet());
+	all.addAll(LpParametersDefaultValues.getDefaultStringValues().keySet());
+	all.addAll(LpParametersDefaultValues.getDefaultObjectValues().keySet());
+	return all;
+	// final SetView<Enum<?>> doublesAndStrings = Sets.union(LpParametersDefaultValues.getDefaultDoubleValues()
+	// .keySet(), LpParametersDefaultValues.getDefaultStringValues().keySet());
+	//
+	// return Sets.union(LpParametersDefaultValues.getDefaultIntValues().keySet(), doublesAndStrings);
     }
 
     static public Predicate<Double> getValidator(LpDoubleParameter parameter) {
@@ -188,13 +201,20 @@ public class LpParametersUtils {
 	throw new IllegalStateException("Unknown parameter.");
     }
 
-    static public Predicate<String> getValidator(LpStringParameter parameter) {
+    static public Predicate<Object> getValidator(LpObjectParameter parameter) {
 	switch (parameter) {
-	case WORK_DIR:
-	    return new Predicate<String>() {
+	case NAMER_VARIABLES:
+	    return new Predicate<Object>() {
 		@Override
-		public boolean apply(String value) {
-		    return value == null || !value.isEmpty();
+		public boolean apply(Object value) {
+		    return value == null || value instanceof Function<?, ?>;
+		}
+	    };
+	case NAMER_VARIABLES_BY_FORMAT:
+	    return new Predicate<Object>() {
+		@Override
+		public boolean apply(Object value) {
+		    return value == null || value instanceof Map<?, ?>;
 		}
 	    };
 	}
@@ -250,11 +270,12 @@ public class LpParametersUtils {
 	final String toStrInts = mapFormatter.join(parameters.getIntParameters());
 	final String toStrDoubles = mapFormatter.join(parameters.getDoubleParameters());
 	final String toStrStrings = mapFormatter.join(parameters.getStringParameters());
+	final String toStrObjects = mapFormatter.join(parameters.getObjectParameters());
 
 	final Joiner joiner = Joiner.on(", ");
 	final Predicate<CharSequence> isNonEmpty = Predicates.contains(Pattern.compile(".+"));
 	final Iterable<String> nonEmptyMaps = Iterables.filter(
-		Arrays.asList(new String[] { toStrInts, toStrDoubles, toStrStrings }), isNonEmpty);
+		Arrays.asList(new String[] { toStrInts, toStrDoubles, toStrStrings, toStrObjects }), isNonEmpty);
 	final String res = joiner.join(nonEmptyMaps);
 	helper.addValue(res);
 	return helper.toString();
@@ -265,5 +286,18 @@ public class LpParametersUtils {
 	// mapFormatter.appendTo(builder, getDoubleParameters());
 	// mapFormatter.appendTo(builder, getStringParameters());
 	// return res;
+    }
+
+    static public Predicate<String> getValidator(LpStringParameter parameter) {
+	switch (parameter) {
+	case WORK_DIR:
+	    return new Predicate<String>() {
+		@Override
+		public boolean apply(String value) {
+		    return value == null || !value.isEmpty();
+		}
+	    };
+	}
+	throw new IllegalStateException("Unknown parameter.");
     }
 }

@@ -27,5 +27,6 @@ public class IlpParametersDefaultValuesTest {
 	assertTrue(LpParametersDefaultValues.getDefaultDoubleValues().size() == LpDoubleParameter.values().length);
 	assertTrue(LpParametersDefaultValues.getDefaultIntValues().size() == LpIntParameter.values().length);
 	assertTrue(LpParametersDefaultValues.getDefaultStringValues().size() == LpStringParameter.values().length);
+	assertTrue(LpParametersDefaultValues.getDefaultObjectValues().size() == LpObjectParameter.values().length);
     }
 }

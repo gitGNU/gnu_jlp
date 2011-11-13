@@ -357,8 +357,9 @@ public class SolverLpSolve<T> extends AbstractLpSolver<T> {
 		}
 		m_lp.writeLp(file + ext);
 		break;
+	    case CPLEX_SAV:
 	    case CPLEX_LP:
-		throw new LpSolverException("Unsupported format: " + LpFileFormat.CPLEX_LP + ".");
+		throw new LpSolverException("Unsupported format: " + format + ".");
 	    case MPS:
 		if (addExtension) {
 		    ext = ".mps";

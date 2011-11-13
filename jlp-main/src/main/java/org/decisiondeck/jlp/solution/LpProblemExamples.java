@@ -23,6 +23,7 @@ import org.decisiondeck.jlp.LpLinearImpl;
 import org.decisiondeck.jlp.LpOperator;
 import org.decisiondeck.jlp.problem.LpProblem;
 import org.decisiondeck.jlp.problem.LpProblemImpl;
+import org.decisiondeck.jlp.problem.LpProblemUtils;
 import org.decisiondeck.jlp.problem.LpVariableType;
 
 public class LpProblemExamples {
@@ -47,6 +48,7 @@ public class LpProblemExamples {
 	problem.setName("OneFourThree");
 	problem.setVarType("x", LpVariableType.INT);
 	problem.setVarType("y", LpVariableType.INT);
+	problem.setVarNamer(LpProblemUtils.<String> getToStringFunction());
 
 	LpLinear<String> obj = new LpLinearImpl<String>();
 	obj.add(143, "x");

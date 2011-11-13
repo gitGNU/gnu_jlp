@@ -28,7 +28,6 @@ import org.decisiondeck.jlp.problem.LpProblemImmutable;
 import org.decisiondeck.jlp.utils.LpSolverUtils;
 import org.decisiondeck.jlp.utils.LpUtils;
 
-import com.google.common.base.Equivalence;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
@@ -178,8 +177,7 @@ public class LpSolutionImmutable<T> implements LpSolution<T> {
 
     @Override
     public int hashCode() {
-	final Equivalence<LpSolution<T>> solutionEquivalence = LpSolverUtils.getSolutionEquivalence();
-	return solutionEquivalence.hash(this);
+	return LpSolverUtils.getSolutionEquivalence().hash(this);
     }
 
     @Override

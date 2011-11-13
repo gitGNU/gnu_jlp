@@ -33,6 +33,7 @@ import ilog.cplex.IloCplex.ParallelMode;
 import ilog.cplex.IloCplex.StringParam;
 
 import java.util.Iterator;
+import java.util.Set;
 
 import org.decisiondeck.jlp.AbstractLpSolver;
 import org.decisiondeck.jlp.LpConstraint;
@@ -95,15 +96,32 @@ public class SolverCPLEX<T> extends AbstractLpSolver<T> {
 	}
     }
 
-    private void exportModel(String file) throws LpSolverException {
+    private void exportModel(String file, LpFileFormat format) throws LpSolverException {
 	lazyInit();
 	try {
+	    setVariableNames(format);
 	    m_cplex.exportModel(file);
 	} catch (IloException exc) {
 	    throw new LpSolverException(exc);
 	} catch (RuntimeException exc2) {
 	    logContent(m_cplex);
 	    throw exc2;
+	} finally {
+	    close();
+	}
+    }
+
+    private void setVariableNames(LpFileFormat format) {
+	final Set<T> variables = m_variablesToCplex.keySet();
+	for (T variable : variables) {
+	    final IloNumVar cplexVar = m_variablesToCplex.get(variable);
+	    final String name;
+	    if (format == null) {
+		name = getVariableName(variable);
+	    } else {
+		name = getVariableName(variable, format);
+	    }
+	    cplexVar.setName(name);
 	}
     }
 
@@ -174,6 +192,7 @@ public class SolverCPLEX<T> extends AbstractLpSolver<T> {
     @Override
     public Object getUnderlyingSolver() throws LpSolverException {
 	lazyInit();
+	// setVariableNames(null);
 	return m_cplex;
     }
 
@@ -450,7 +469,7 @@ public class SolverCPLEX<T> extends AbstractLpSolver<T> {
     private void setVariables() throws IloException {
 	final Builder<T, IloNumVar> variablesToCplexBuilder = ImmutableBiMap.builder();
 	for (T variable : getProblem().getVariables()) {
-	    final String varName = getVarName(variable);
+	    final String varName = getVariableName(variable);
 	    LpVariableType varType = getProblem().getVarType(variable);
 	    Number lowerBound = LpSolverUtils.getVarLowerBoundBounded(getProblem(), variable);
 	    Number upperBound = LpSolverUtils.getVarUpperBoundBounded(getProblem(), variable);
@@ -487,6 +506,7 @@ public class SolverCPLEX<T> extends AbstractLpSolver<T> {
     @Override
     protected LpResultStatus solveUnderlying() throws LpSolverException {
 	lazyInit();
+	// setVariableNames(null);
 
 	try {
 	    final LpTimingType timingType = getPreferredTimingType();
@@ -534,15 +554,15 @@ public class SolverCPLEX<T> extends AbstractLpSolver<T> {
 	}
 	switch (format) {
 	case CPLEX_LP:
-	    exportModel(file + ".lp");
+	    exportModel(file + ".lp", LpFileFormat.CPLEX_LP);
 	    break;
 	case MPS:
-	    exportModel(file + ".mps");
+	    exportModel(file + ".mps", LpFileFormat.MPS);
 	    break;
+	case CPLEX_SAV:
 	case SOLVER_PREFERRED:
-	    exportModel(file + ".sav");
+	    exportModel(file + ".sav", LpFileFormat.CPLEX_SAV);
 	    break;
 	}
     }
-
 }

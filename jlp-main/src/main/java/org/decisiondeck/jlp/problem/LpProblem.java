@@ -26,6 +26,9 @@ import org.decisiondeck.jlp.LpDirection;
 import org.decisiondeck.jlp.LpLinear;
 import org.decisiondeck.jlp.LpObjective;
 import org.decisiondeck.jlp.LpOperator;
+import org.decisiondeck.jlp.parameters.LpObjectParameter;
+
+import com.google.common.base.Function;
 
 /**
  * <p>
@@ -47,6 +50,10 @@ import org.decisiondeck.jlp.LpOperator;
  * <p>
  * Some implementations of this interface may be read-only (either because they are immutable or because they are a
  * read-only view), in which case an attempt to write to the object will throw {@link UnsupportedOperationException}.
+ * </p>
+ * <p>
+ * Two such problems are equivalent when they define the same variables (as per {@link #equals}), constraints, objective
+ * function, irrespective of the problem, variables and constraints names.
  * </p>
  * 
  * @param <T>
@@ -151,11 +158,47 @@ public interface LpProblem<T> {
     public Number getVarLowerBound(T variable);
 
     /**
+     * Retrieves the name of the variable as set in this problem.
+     * 
      * @param variable
      *            not <code>null</code>, must be a variable of this problem.
-     * @return the variable name, empty string if the variable has no name.
+     * @return not <code>null</code>, empty string if the variable has no name.
+     * @see #setVarName
      */
-    public String getVarName(T variable);
+    public String getVarNameSet(T variable);
+
+    /**
+     * Retrieves the name of the variable as computed from the variable namer function, if it is set, or taken from the
+     * name of the variable set in this problem, if it has been set.
+     * 
+     * @param variable
+     *            not <code>null</code>, must be a variable of this problem.
+     * @return not <code>null</code>, empty string if the variable has no name.
+     * @see #setVarNamer
+     * @see #setVarName
+     */
+    public String getVarNameComputed(T variable);
+
+    /**
+     * <p>
+     * Sets the namer function that is used to associate names to variables. If the namer is <code>null</code> (the
+     * default), this object uses the names associated to the variables using {@link #setVarName} to compute the
+     * variable names.
+     * </p>
+     * <p>
+     * An example function that can be used is available through {@link LpProblemUtils#getToStringFunction()}.
+     * </p>
+     * <p>
+     * TODO make the tostring function the default; remove manual var names; add wrapper to set the var names through a
+     * dedicated namer function (if useful).
+     * </p>
+     * 
+     * @param namer
+     *            <code>null</code> to default to the names set with {@link #setVarName}.
+     * @see #getVarNameComputed
+     * @see LpObjectParameter#NAMER_VARIABLES
+     */
+    public void setVarNamer(Function<T, String> namer);
 
     /**
      * Retrieves the type of a variable.
@@ -214,7 +257,7 @@ public interface LpProblem<T> {
      * Sets or removes the lower and upper bounds of a variable. Adds the variable to this problem if it is not already
      * in, with a REAL type as default type. If both bounds are non <code>null</code>, the lower one must be less or
      * equal to the upper one. If the given lower bound alone is non <code>null</code>, it must be less or equal to the
-     * existing upper bound, if set; and similarily for the given upper bound.
+     * existing upper bound, if set; and similarily for the given upper bound. TODO change this!
      * 
      * @param variable
      *            not <code>null</code>.
@@ -250,4 +293,6 @@ public interface LpProblem<T> {
      * @return <code>true</code> iff the call modified the state of this object.
      */
     public boolean setVarType(T variable, LpVariableType type);
+
+    public Function<T, String> getVarNamer();
 }

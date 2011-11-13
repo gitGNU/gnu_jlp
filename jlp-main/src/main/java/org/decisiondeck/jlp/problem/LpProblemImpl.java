@@ -30,9 +30,10 @@ import org.decisiondeck.jlp.LpOperator;
 import org.decisiondeck.jlp.LpTerm;
 import org.decisiondeck.jlp.utils.LpSolverUtils;
 
-import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalences;
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.EnumMultiset;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
@@ -75,10 +76,13 @@ public class LpProblemImpl<T> implements LpProblem<T> {
 
     private final Map<T, Number> m_varUpperBound = Maps.newHashMap();
 
+    private Function<T, String> m_namer;
+
     public LpProblemImpl() {
 	m_name = "";
 	m_objectiveFunction = null;
 	m_optType = null;
+	m_namer = null;
     }
 
     /**
@@ -198,10 +202,10 @@ public class LpProblemImpl<T> implements LpProblem<T> {
     }
 
     @Override
-    public String getVarName(T variable) {
+    public String getVarNameSet(T variable) {
 	Preconditions.checkArgument(m_varType.containsKey(variable));
 	final String name = m_varNames.get(variable);
-	return name == null ? "" : name;
+	return Strings.nullToEmpty(name);
     }
 
     @Override
@@ -218,8 +222,7 @@ public class LpProblemImpl<T> implements LpProblem<T> {
 
     @Override
     public int hashCode() {
-	final Equivalence<LpProblem<T>> problemEquivalence = LpSolverUtils.getProblemEquivalence();
-	return problemEquivalence.hash(this);
+	return LpSolverUtils.getProblemEquivalence().hash(this);
     }
 
     @Override
@@ -333,6 +336,24 @@ public class LpProblemImpl<T> implements LpProblem<T> {
     @Override
     public String toString() {
 	return LpSolverUtils.getAsString(this);
+    }
+
+    @Override
+    public String getVarNameComputed(T variable) {
+	if (m_namer == null) {
+	    return getVarNameSet(variable);
+	}
+	return Strings.nullToEmpty(m_namer.apply(variable));
+    }
+
+    @Override
+    public void setVarNamer(Function<T, String> namer) {
+	m_namer = namer;
+    }
+
+    @Override
+    public Function<T, String> getVarNamer() {
+	return m_namer;
     }
 
 }

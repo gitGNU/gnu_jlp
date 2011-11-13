@@ -95,7 +95,7 @@ public class LpUtils {
 	for (T variable : variables) {
 	    s_logger.info("Variable {} in problem: name {}, type " + problem.getVarType(variable) + ", bounds "
 		    + problem.getVarLowerBound(variable) + " to " + problem.getVarUpperBound(variable) + ".", variable,
-		    problem.getVarName(variable));
+		    problem.getVarNameComputed(variable));
 	}
 	final Set<LpConstraint<T>> constraints = problem.getConstraints();
 	for (LpConstraint<T> constraint : constraints) {

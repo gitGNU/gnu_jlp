@@ -22,6 +22,8 @@ import org.decisiondeck.jlp.LpDirection;
 import org.decisiondeck.jlp.LpLinear;
 import org.decisiondeck.jlp.LpOperator;
 
+import com.google.common.base.Function;
+
 public class LpProblemReadView<T> extends LpProblemForwarder<T> implements LpProblem<T> {
 
     public LpProblemReadView(LpProblem<T> delegate) {
@@ -70,6 +72,11 @@ public class LpProblemReadView<T> extends LpProblemForwarder<T> implements LpPro
 
     @Override
     public boolean setVarName(T variable, String name) {
+	throw new UnsupportedOperationException("This object is a read-only view.");
+    }
+
+    @Override
+    public void setVarNamer(Function<T, String> namer) {
 	throw new UnsupportedOperationException("This object is a read-only view.");
     }
 

@@ -18,5 +18,5 @@
 package org.decisiondeck.jlp;
 
 public enum LpFileFormat {
-    CPLEX_LP, MPS, SOLVER_PREFERRED
+    CPLEX_LP, MPS, SOLVER_PREFERRED, CPLEX_SAV
 }

@@ -20,8 +20,6 @@ package org.decisiondeck.jlp.problem;
 import org.decisiondeck.jlp.LpConstraint;
 import org.decisiondeck.jlp.utils.LpSolverUtils;
 
-import com.google.common.base.Equivalence;
-
 /**
  * <p>
  * This object may be used to get rid of the boolean types in a problem and view them as integers. It implements a view
@@ -99,8 +97,7 @@ public class LpProblemWithTransformedBoolsView<T> extends LpProblemForwarder<T> 
 
     @Override
     public int hashCode() {
-	final Equivalence<LpProblem<T>> problemEquivalence = LpSolverUtils.getProblemEquivalence();
-	return problemEquivalence.hash(this);
+	return LpSolverUtils.getProblemEquivalence().hash(this);
     }
 
     @Override

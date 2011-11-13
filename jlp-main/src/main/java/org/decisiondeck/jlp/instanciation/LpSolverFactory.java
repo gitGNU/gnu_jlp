@@ -28,6 +28,14 @@ public class LpSolverFactory {
      */
     private LpSolverType m_solverImpl;
 
+    /**
+     * @param impl
+     *            <code>null</code> for not set.
+     */
+    public LpSolverFactory(LpSolverType impl) {
+	m_solverImpl = impl;
+    }
+
     public LpSolverFactory() {
 	m_solverImpl = null;
     }

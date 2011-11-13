@@ -19,7 +19,6 @@ package org.decisiondeck.jlp;
 
 import org.decisiondeck.jlp.utils.LpSolverUtils;
 
-import com.google.common.base.Equivalence;
 import com.google.common.base.Preconditions;
 
 /**
@@ -120,8 +119,7 @@ public class LpConstraint<T> {
 
     @Override
     public int hashCode() {
-	final Equivalence<LpConstraint<T>> equivalence = LpSolverUtils.getConstraintEquivalence();
-	return equivalence.hash(this);
+	return LpSolverUtils.getConstraintEquivalence().hash(this);
     }
 
     @Override

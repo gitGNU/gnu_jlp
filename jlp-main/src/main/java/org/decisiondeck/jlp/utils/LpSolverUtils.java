@@ -180,127 +180,31 @@ public class LpSolverUtils {
 	target.setName(source.getName());
 	for (T variable : source.getVariables()) {
 	    target.setVarType(variable, source.getVarType(variable));
-	    target.setVarName(variable, source.getVarName(variable));
+	    target.setVarName(variable, source.getVarNameSet(variable));
 	    target.setVarBounds(variable, source.getVarLowerBound(variable), source.getVarUpperBound(variable));
 	}
 	target.setObjective(source.getObjective().getFunction(), source.getObjective().getDirection());
 	for (LpConstraint<T> constraint : source.getConstraints()) {
 	    target.add(constraint);
 	}
+	target.setVarNamer(source.getVarNamer());
 	return true;
     }
 
-    static public <T1, T2> boolean equivalent(LpConstraint<T1> a, LpConstraint<T2> b) {
-	if (a == b) {
-	    return true;
-	}
-	if (a == null || b == null) {
-	    return false;
-	}
-
-	if (a.getRhs() != b.getRhs()) {
-	    return false;
-	}
-	if (!a.getLhs().equals(b.getLhs())) {
-	    return false;
-	}
-	if (!a.getOperator().equals(b.getOperator())) {
-	    return false;
-	}
-	return true;
+    static public boolean equivalent(LpConstraint<?> a, LpConstraint<?> b) {
+	return getConstraintEquivalence().equivalent(a, b);
     }
 
-    static public <T1, T2> boolean equivalent(LpLinear<T1> a, LpLinear<T2> b) {
-	if (a == null) {
-	    return b == null;
-	}
-	if (b == null) {
-	    return false;
-	}
-
-	return Iterables.elementsEqual(a, b);
+    static public boolean equivalent(LpLinear<?> a, LpLinear<?> b) {
+	return getLinearEquivalence().equivalent(a, b);
     }
 
-    static public <T1, T2> boolean equivalent(LpProblem<T1> a, LpProblem<T2> b) {
-	if (a == null) {
-	    return b == null;
-	}
-	if (b == null) {
-	    return false;
-	}
-
-	if (!a.getName().equals(b.getName())) {
-	    return false;
-	}
-	if (!a.getConstraints().equals(b.getConstraints())) {
-	    return false;
-	}
-	if (!Objects.equal(a.getObjective(), b.getObjective())) {
-	    return false;
-	}
-	if (!a.getVariables().equals(b.getVariables())) {
-	    return false;
-	}
-	for (T1 variable : a.getVariables()) {
-	    if (!b.getVariables().contains(variable)) {
-		return false;
-	    }
-	    @SuppressWarnings("unchecked")
-	    final T2 varTyped = (T2) variable;
-
-	    if (!getEquivalenceByDoubleValue().equivalent(a.getVarLowerBound(variable), b.getVarLowerBound(varTyped))) {
-		return false;
-	    }
-	    if (!Objects.equal(a.getVarName(variable), b.getVarName(varTyped))) {
-		return false;
-	    }
-	    if (!Objects.equal(a.getVarType(variable), b.getVarType(varTyped))) {
-		return false;
-	    }
-	    if (!getEquivalenceByDoubleValue().equivalent(a.getVarUpperBound(variable), b.getVarUpperBound(varTyped))) {
-		return false;
-	    }
-	}
-	return true;
+    static public boolean equivalent(LpProblem<?> a, LpProblem<?> b) {
+	return getProblemEquivalence().equivalent(a, b);
     }
 
-    static public <T1, T2> boolean equivalent(LpSolution<T1> a, LpSolution<T2> b) {
-	if (a == null) {
-	    return b == null;
-	}
-	if (b == null) {
-	    return false;
-	}
-
-	if (!getEquivalenceByDoubleValue().equivalent(a.getObjectiveValue(), b.getObjectiveValue())) {
-	    return false;
-	}
-	if (!a.getProblem().equals(b.getProblem())) {
-	    return false;
-	}
-	for (T1 variable : a.getVariables()) {
-	    if (!b.getVariables().contains(variable)) {
-		return false;
-	    }
-	    @SuppressWarnings("unchecked")
-	    final T2 varTyped = (T2) variable;
-
-	    if (!getEquivalenceByDoubleValue().equivalent(a.getValue(variable), b.getValue(varTyped))) {
-		return false;
-	    }
-	}
-	for (LpConstraint<T1> constraint : a.getConstraints()) {
-	    if (!b.getConstraints().contains(constraint)) {
-		return false;
-	    }
-	    @SuppressWarnings("unchecked")
-	    final LpConstraint<T2> constraintTyped = (LpConstraint<T2>) constraint;
-
-	    if (!getEquivalenceByDoubleValue().equivalent(a.getDualValue(constraint), b.getDualValue(constraintTyped))) {
-		return false;
-	    }
-	}
-	return true;
+    static public boolean equivalent(LpSolution<?> a, LpSolution<?> b) {
+	return getSolutionEquivalence().equivalent(a, b);
     }
 
     static public int getAsInteger(double number) throws LpSolverException {
@@ -362,19 +266,25 @@ public class LpSolverUtils {
 	return helper.toString();
     }
 
-    static public <T> Equivalence<LpConstraint<T>> getConstraintEquivalence() {
-	return new Equivalence<LpConstraint<T>>() {
+    static public Equivalence<LpConstraint<?>> getConstraintEquivalence() {
+	return new Equivalence<LpConstraint<?>>() {
 
 	    @Override
-	    public boolean equivalent(LpConstraint<T> a, LpConstraint<T> b) {
-		return LpSolverUtils.equivalent(a, b);
+	    public boolean doEquivalent(LpConstraint<?> a, LpConstraint<?> b) {
+		if (a.getRhs() != b.getRhs()) {
+		    return false;
+		}
+		if (!a.getLhs().equals(b.getLhs())) {
+		    return false;
+		}
+		if (!a.getOperator().equals(b.getOperator())) {
+		    return false;
+		}
+		return true;
 	    }
 
 	    @Override
-	    public int hash(LpConstraint<T> c) {
-		if (c == null) {
-		    return 0;
-		}
+	    public int doHash(LpConstraint<?> c) {
 		return Objects.hashCode(c.getLhs(), c.getOperator(), Double.valueOf(c.getRhs()));
 	    }
 	};
@@ -383,35 +293,28 @@ public class LpSolverUtils {
     static public Equivalence<Number> getEquivalenceByDoubleValue() {
 	return new Equivalence<Number>() {
 	    @Override
-	    public boolean equivalent(Number a, Number b) {
-		if (a == null) {
-		    return b == null;
-		}
-		if (b == null) {
-		    return false;
-		}
+	    public boolean doEquivalent(Number a, Number b) {
 		return a.doubleValue() == b.doubleValue();
 	    }
 
 	    @Override
-	    public int hash(Number t) {
+	    public int doHash(Number t) {
 		return Double.valueOf(t.doubleValue()).hashCode();
 	    }
 	};
     }
 
-    static public <T> Equivalence<LpLinear<T>> getLinearEquivalence() {
-	return new Equivalence<LpLinear<T>>() {
-
+    static public Equivalence<LpLinear<?>> getLinearEquivalence() {
+	return new Equivalence<LpLinear<?>>() {
 	    @Override
-	    public boolean equivalent(LpLinear<T> a, LpLinear<T> b) {
-		return LpSolverUtils.equivalent(a, b);
+	    public boolean doEquivalent(LpLinear<?> a, LpLinear<?> b) {
+		return Iterables.elementsEqual(a, b);
 	    }
 
 	    @Override
-	    public int hash(LpLinear<T> t) {
+	    public int doHash(LpLinear<?> t) {
 		int hashCode = 1;
-		for (LpTerm<T> term : t) {
+		for (LpTerm<?> term : t) {
 		    hashCode = 31 * hashCode + term.hashCode();
 		}
 		return hashCode;
@@ -419,50 +322,109 @@ public class LpSolverUtils {
 	};
     }
 
-    static public <T> Equivalence<LpProblem<T>> getProblemEquivalence() {
-	return new Equivalence<LpProblem<T>>() {
+    static public Equivalence<LpProblem<? extends Object>> getProblemEquivalence() {
+	return new Equivalence<LpProblem<? extends Object>>() {
 	    @Override
-	    public boolean equivalent(LpProblem<T> a, LpProblem<T> b) {
-		return LpSolverUtils.equivalent(a, b);
+	    public boolean doEquivalent(LpProblem<? extends Object> a, LpProblem<? extends Object> b) {
+		return computeEquivalent(a, b);
+	    }
+
+	    private <T1, T2> boolean computeEquivalent(LpProblem<T1> a, LpProblem<T2> b) {
+		if (!a.getConstraints().equals(b.getConstraints())) {
+		    return false;
+		}
+		if (!Objects.equal(a.getObjective(), b.getObjective())) {
+		    return false;
+		}
+		if (!a.getVariables().equals(b.getVariables())) {
+		    return false;
+		}
+		for (T1 variable : a.getVariables()) {
+		    if (!b.getVariables().contains(variable)) {
+			return false;
+		    }
+		    @SuppressWarnings("unchecked")
+		    final T2 varTyped = (T2) variable;
+
+		    if (!getEquivalenceByDoubleValue().equivalent(a.getVarLowerBound(variable),
+			    b.getVarLowerBound(varTyped))) {
+			return false;
+		    }
+		    if (!Objects.equal(a.getVarType(variable), b.getVarType(varTyped))) {
+			return false;
+		    }
+		    if (!getEquivalenceByDoubleValue().equivalent(a.getVarUpperBound(variable),
+			    b.getVarUpperBound(varTyped))) {
+			return false;
+		    }
+		}
+		return true;
 	    }
 
 	    @Override
-	    public int hash(LpProblem<T> t) {
-		final int hashCode = Objects.hashCode(t.getName(), t.getObjective());
+	    public int doHash(LpProblem<? extends Object> t) {
+		final int hashCode = Objects.hashCode(t.getObjective());
 		return hashCode + t.getConstraints().hashCode() + t.getVariables().hashCode();
 	    }
 	};
     }
 
-    static public <T> Equivalence<LpSolution<T>> getSolutionEquivalence() {
-	return new Equivalence<LpSolution<T>>() {
+    static public Equivalence<LpSolution<? extends Object>> getSolutionEquivalence() {
+	return new Equivalence<LpSolution<? extends Object>>() {
 	    @Override
-	    public boolean equivalent(LpSolution<T> a, LpSolution<T> b) {
-		return LpSolverUtils.equivalent(a, b);
+	    public boolean doEquivalent(LpSolution<? extends Object> a, LpSolution<? extends Object> b) {
+		return computeEquivalent(a, b);
+	    }
+
+	    private <T1, T2> boolean computeEquivalent(LpSolution<T1> a, LpSolution<T2> b) {
+		if (!getEquivalenceByDoubleValue().equivalent(a.getObjectiveValue(), b.getObjectiveValue())) {
+		    return false;
+		}
+		if (!a.getProblem().equals(b.getProblem())) {
+		    return false;
+		}
+		for (T1 variable : a.getVariables()) {
+		    if (!b.getVariables().contains(variable)) {
+			return false;
+		    }
+		    @SuppressWarnings("unchecked")
+		    final T2 varTyped = (T2) variable;
+
+		    if (!getEquivalenceByDoubleValue().equivalent(a.getValue(variable), b.getValue(varTyped))) {
+			return false;
+		    }
+		}
+		for (LpConstraint<T1> constraint : a.getConstraints()) {
+		    if (!b.getConstraints().contains(constraint)) {
+			return false;
+		    }
+		    @SuppressWarnings("unchecked")
+		    final LpConstraint<T2> constraintTyped = (LpConstraint<T2>) constraint;
+
+		    if (!getEquivalenceByDoubleValue().equivalent(a.getDualValue(constraint),
+			    b.getDualValue(constraintTyped))) {
+			return false;
+		    }
+		}
+		return true;
 	    }
 
 	    @Override
-	    public int hash(LpSolution<T> t) {
-		int hashCode = Objects.hashCode(t.getProblem(), t.getProblem());
-		for (T variable : t.getVariables()) {
-		    hashCode += t.getValue(variable).hashCode();
+	    public int doHash(LpSolution<? extends Object> t) {
+		return computeHash(t);
+	    }
+
+	    private <T> int computeHash(LpSolution<T> solution) {
+		int hashCode = Objects.hashCode(solution.getProblem(), solution.getProblem());
+		for (T variable : solution.getVariables()) {
+		    hashCode += solution.getValue(variable).hashCode();
 		}
-		for (LpConstraint<T> constraint : t.getConstraints()) {
-		    hashCode += t.getDualValue(constraint).hashCode();
+		for (LpConstraint<T> constraint : solution.getConstraints()) {
+		    hashCode += solution.getDualValue(constraint).hashCode();
 		}
 		return hashCode;
 	    }
 	};
-    }
-
-    /**
-     * @param <T>
-     *            the type of input.
-     * @return a function that applies the {@link #toString()} method to its input. Does not accept <code>null</code>
-     *         values as input.
-     */
-    static public <T> Function<T, String> getToStringFunction() {
-	return new ToString<T>();
     }
 
     static public <T> BiMap<T, Integer> getVariablesIds(LpProblem<T> problem, int startId) {

@@ -24,7 +24,9 @@ import java.util.Set;
 
 import org.decisiondeck.jlp.LpConstraint;
 import org.decisiondeck.jlp.LpOperator;
+import org.decisiondeck.jlp.utils.LpSolverUtils.ToString;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
@@ -226,5 +228,15 @@ public class LpProblemUtils {
 		    + effectiveLower + ".");
 	}
 	return problem.setVarBounds(variable, effectiveLower, effectiveUpper);
+    }
+
+    /**
+     * @param <T>
+     *            the type of input.
+     * @return a function that applies the {@link #toString()} method to its input. Does not accept <code>null</code>
+     *         values as input.
+     */
+    static public <T> Function<T, String> getToStringFunction() {
+	return new ToString<T>();
     }
 }

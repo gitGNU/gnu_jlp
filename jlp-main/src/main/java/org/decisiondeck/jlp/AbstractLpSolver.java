@@ -19,8 +19,11 @@ package org.decisiondeck.jlp;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Map;
+
 import org.decisiondeck.jlp.parameters.LpDoubleParameter;
 import org.decisiondeck.jlp.parameters.LpIntParameter;
+import org.decisiondeck.jlp.parameters.LpObjectParameter;
 import org.decisiondeck.jlp.parameters.LpParameters;
 import org.decisiondeck.jlp.parameters.LpParametersImpl;
 import org.decisiondeck.jlp.parameters.LpParametersUtils;
@@ -32,7 +35,6 @@ import org.decisiondeck.jlp.solution.LpSolution;
 import org.decisiondeck.jlp.solution.LpSolutionImmutable;
 import org.decisiondeck.jlp.solution.LpSolverDuration;
 import org.decisiondeck.jlp.utils.LpSolverUtils;
-import org.decisiondeck.jlp.utils.LpSolverUtils.ToString;
 import org.decisiondeck.jlp.utils.TimingHelper;
 
 import com.google.common.base.Function;
@@ -63,8 +65,6 @@ import com.google.common.base.Preconditions;
  */
 public abstract class AbstractLpSolver<T> implements LpSolver<T> {
     private Double m_autoCorrectThreshold;
-    private boolean m_autoName;
-
     protected LpSolverDuration m_lastDuration;
 
     private LpResultStatus m_lastResultStatus;
@@ -77,8 +77,6 @@ public abstract class AbstractLpSolver<T> implements LpSolver<T> {
 
     final private TimingHelper m_timingHelper;
 
-    private Function<T, String> m_variableNamer;
-
     public AbstractLpSolver() {
 	m_problem = new LpProblemImpl<T>();
 	m_parameters = new LpParametersImpl();
@@ -86,7 +84,6 @@ public abstract class AbstractLpSolver<T> implements LpSolver<T> {
 	m_lastSolution = null;
 	m_lastDuration = null;
 	m_lastResultStatus = null;
-	m_variableNamer = new ToString<T>();
 	m_autoCorrectThreshold = null;
     }
 
@@ -248,26 +245,46 @@ public abstract class AbstractLpSolver<T> implements LpSolver<T> {
 	}
     }
 
-    @Override
-    public Function<T, String> getVariableNamer() {
-	return m_variableNamer;
-    }
-
     /**
-     * Retrieves the name that should be used for a variable. This method takes into account the auto naming
-     * functionality.
+     * Retrieves the name that should be used for a variable according to the specified export format. This method uses
+     * the appropriate naming function if it is set.
      * 
      * @param variable
      *            not <code>null</code>.
-     * @return not <code>null</code>.
+     * @param format
+     *            not <code>null</code>.
+     * @return not <code>null</code>, empty string for no name.
      */
-    public String getVarName(T variable) {
-	final String varName = getProblem().getVarName(variable);
-	if (varName.isEmpty() && m_autoName) {
-	    final String altName = variable.toString();
-	    return altName == null ? "" : altName;
+    public String getVariableName(T variable, LpFileFormat format) {
+	Preconditions.checkNotNull(variable);
+	Preconditions.checkNotNull(format);
+
+	final Map<?, ?> namers = (Map<?, ?>) getParameter(LpObjectParameter.NAMER_VARIABLES_BY_FORMAT);
+	if (namers == null || !namers.containsKey(format)) {
+	    return getVariableName(variable);
 	}
-	return varName;
+	final Object namerObj = namers.get(format);
+	if (!(namerObj instanceof Function)) {
+	    throw new ClassCastException("Illegal variable namer '" + namerObj + "', namers should be functions.");
+	}
+	final Function<?, ?> namer = (Function<?, ?>) namerObj;
+
+	return getVariableName(variable, namer);
+    }
+
+    private String getVariableName(T variable, Function<?, ?> namer) {
+	@SuppressWarnings("unchecked")
+	final Function<T, ?> namerTyped = (Function<T, ?>) namer;
+	final Object named = namerTyped.apply(variable);
+	if (named == null) {
+	    return "";
+	}
+	if (!(named instanceof String)) {
+	    throw new ClassCastException("Illegal variable name '" + named
+		    + "', namer should only return strings or nulls.");
+	}
+	final String name = (String) named;
+	return name;
     }
 
     /**
@@ -311,11 +328,6 @@ public abstract class AbstractLpSolver<T> implements LpSolver<T> {
     }
 
     @Override
-    public void setVariableNamer(Function<T, String> variableNamer) {
-	m_variableNamer = variableNamer;
-    }
-
-    @Override
     public LpResultStatus solve() throws LpSolverException {
 	Preconditions.checkState(getProblem().getObjective().isEmpty() || getProblem().getObjective().isComplete(),
 		"Problem must have an objective function iff it has an objective direction.");
@@ -324,5 +336,36 @@ public abstract class AbstractLpSolver<T> implements LpSolver<T> {
     }
 
     abstract protected LpResultStatus solveUnderlying() throws LpSolverException;
+
+    /**
+     * Retrieves the value associated with the given parameter. If the value has not been set, returns the default value
+     * for that parameter.
+     * 
+     * @param parameter
+     *            not <code>null</code>.
+     * @return a meaningful value for that parameter, possibly <code>null</code> as this is a meaningful value for some
+     *         parameters.
+     */
+    public Object getParameter(LpObjectParameter parameter) {
+	return m_parameters.getValue(parameter);
+    }
+
+    /**
+     * Retrieves the name that should be used for a variable. This method uses the naming function if it is set.
+     * 
+     * @param variable
+     *            not <code>null</code>.
+     * @return not <code>null</code>, empty string for no name.
+     */
+    public String getVariableName(T variable) {
+	Preconditions.checkNotNull(variable);
+
+	final Function<?, ?> namer = (Function<?, ?>) getParameter(LpObjectParameter.NAMER_VARIABLES);
+	if (namer == null) {
+	    return getProblem().getVarNameComputed(variable);
+	}
+
+	return getVariableName(variable, namer);
+    }
 
 }

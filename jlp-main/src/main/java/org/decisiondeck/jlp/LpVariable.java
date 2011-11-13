@@ -17,7 +17,6 @@
  */
 package org.decisiondeck.jlp;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -88,7 +87,7 @@ public class LpVariable<T> {
 	    throw new NullPointerException("Given references contain a null reference.");
 	}
 	m_category = category;
-	m_refs = Collections.unmodifiableList(new ArrayList<Object>(asList));
+	m_refs = Collections.unmodifiableList(asList);
     }
 
     @Override

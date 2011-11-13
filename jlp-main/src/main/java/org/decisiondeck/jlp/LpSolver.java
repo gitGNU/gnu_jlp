@@ -22,9 +22,6 @@ import org.decisiondeck.jlp.problem.LpProblem;
 import org.decisiondeck.jlp.problem.LpVariableType;
 import org.decisiondeck.jlp.solution.LpSolution;
 import org.decisiondeck.jlp.solution.LpSolverDuration;
-import org.decisiondeck.jlp.utils.LpSolverUtils;
-
-import com.google.common.base.Function;
 
 /**
  * <p>
@@ -54,9 +51,9 @@ import com.google.common.base.Function;
  * <p>
  * When a problem is transferred to the underlying solver by this solver, the variables having a type of
  * {@link LpVariableType#BOOL} are associated with 0 and 1 lower and upper bounds except if their associated bounds are
- * even further constrainted. E.g. a variable defined as BOOL with bounds of <0.5, 4> have its bounds modified to become
+ * even further constrained. E.g. a variable defined as BOOL with bounds of <0.5, 4> have its bounds modified to become
  * <0.5, 1> for the underlying solver. However this object will report the bounds as they are set in the problem, thus
- * with bounds of <0.5, 4>. Also note that the solver does not attempt to transform the input in a manner dependent on
+ * with bounds of <0.5, 4>. Also note that this solver does not attempt to transform the input in a manner dependent on
  * the underlying solver. If, for example, a 0-1 binary solver is used, the bounds are <em>not</em> automatically
  * transformed to conform to this setting. (Thus in that situation the solver will throw an exception when attempted to
  * solve.) An undefined bound is equivalent to a minus, or plus, infinity. This is so, once again, independently of the
@@ -79,21 +76,22 @@ import com.google.common.base.Function;
  * solver used.
  * </p>
  * <p>
- * Note about unconstrained variable: it is admitted to include variables that are used in no constraints in a problem.
- * Such a variable may have bounds. This solver does not take action: if the underlying solver gives a solution
- * (therefore chosen arbitrarily), it will appear as a solution. Forcing, with this solver, no solution for such a
- * variable would be appropriate only if the variable has no bound. If it has, then a solution should be given to avoid
- * exhibiting a different behavior between a bound on a variable and a constraint expressing the same bound.
+ * Note about unconstrained variable: it is admitted to include variables that are used in no constraints and no
+ * objective function in a problem. Such a variable may have bounds. This solver does not take action: if the underlying
+ * solver gives a solution involving these variables (therefore chosen arbitrarily), it will appear as a solution.
+ * Forcing, with this solver, no solution for such a variable would be appropriate only if the variable has no bound. If
+ * it has, then a solution should be given to avoid exhibiting a different behavior between a bound on a variable and a
+ * constraint expressing the same bound.
  * </p>
  * <p>
  * Problems may be solved without an objective function, in which case the solve will simply search for a feasible
  * solution. In this case it never returns the status {@link LpResultStatus#OPTIMAL}. When solve is called, the bound
  * problem must have its objective function defined iff the objective direction is defined. Defining one and not the
- * other one is useless and considered as an error.
+ * other one is meaningless and considered as an error.
  * </p>
  * <p>
  * Solving a problem with no constraints (and even no variables) is allowed and results in a
- * {@link LpResultStatus#FEASIBLE} status.
+ * {@link LpResultStatus#FEASIBLE} status. TODO and if unbounded, e.g. max x with only one var x and no constraints?
  * </p>
  * <p>
  * As some solvers (notably CPLEX) sometimes yield a solution that is slightly outside the defined bounds for the
@@ -180,11 +178,6 @@ public interface LpSolver<T> {
     public Object getUnderlyingSolver() throws LpSolverException;
 
     /**
-     * @return possibly <code>null</code>.
-     */
-    public Function<T, String> getVariableNamer();
-
-    /**
      * Sets the maximum difference between a bound and an observed value, after a solve, that will be automatically
      * corrected by this solver.
      * 
@@ -219,29 +212,6 @@ public interface LpSolver<T> {
      * @return <code>true</code> iff the state of the bound problem changed as a result of this method execution.
      */
     public boolean setProblem(LpProblem<T> problem);
-
-    /**
-     * <p>
-     * If not <code>null</code>, this solver will automatically associates names to variables in the bound problem for
-     * which no name has been specified, using the given namer, when creating the problem in the underlying solver.
-     * </p>
-     * <p>
-     * Setting the parameter to <code>null</code> disables the auto naming functionality: if a variable has no name set
-     * in the problem, it stays unnamed.
-     * </p>
-     * <p>
-     * The default is to use, for variables with no name, the {@link #toString()} method of the variable object. An
-     * equivalent function may be retrieved from {@link LpSolverUtils#getToStringFunction()}.
-     * </p>
-     * <p>
-     * Note that giving a name to a variable when defining it in the problem always overrides this parameter.
-     * </p>
-     * 
-     * @param variableNamer
-     *            <code>null</code> to disable the behavior of automatic naming of the variables, in which case the
-     *            variables to which no name has been associated will be given unnamed to the underlying solver.
-     */
-    public void setVariableNamer(Function<T, String> variableNamer);
 
     /**
      * Solves the bound optimization problem. If the bound problem has an objective function set, the optimization

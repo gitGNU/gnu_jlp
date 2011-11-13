@@ -20,7 +20,7 @@ package org.decisiondeck.jlp.parameters;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.google.common.base.Equivalences;
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
@@ -34,17 +34,21 @@ import com.google.common.collect.Maps;
 public class LpParametersImpl implements LpParameters {
 
     /**
-     * Do not contain default values. No <code>null</code> key.
+     * Does not contain default values. No <code>null</code> key.
      */
-    private final Map<LpDoubleParameter, Double> m_doubleParameters = new HashMap<LpDoubleParameter, Double>();
+    private final Map<LpDoubleParameter, Double> m_doubleParameters = Maps.newHashMap();
     /**
-     * Do not contain default values. No <code>null</code> key.
+     * Does not contain default values. No <code>null</code> key.
      */
-    private final Map<LpIntParameter, Integer> m_intParameters = new HashMap<LpIntParameter, Integer>();
+    private final Map<LpObjectParameter, Object> m_objectParameters = Maps.newHashMap();
     /**
-     * Do not contain default values. No <code>null</code> key.
+     * Does not contain default values. No <code>null</code> key.
      */
-    private final Map<LpStringParameter, String> m_stringParameters = new HashMap<LpStringParameter, String>();
+    private final Map<LpIntParameter, Integer> m_intParameters = Maps.newHashMap();
+    /**
+     * Does not contain default values. No <code>null</code> key.
+     */
+    private final Map<LpStringParameter, String> m_stringParameters = Maps.newHashMap();
 
     public LpParametersImpl() {
 	/** No parameters constructor. */
@@ -60,6 +64,7 @@ public class LpParametersImpl implements LpParameters {
 	m_intParameters.putAll(source.getIntParameters());
 	m_stringParameters.putAll(source.getStringParameters());
 	m_doubleParameters.putAll(source.getDoubleParameters());
+	m_objectParameters.putAll(source.getObjectParameters());
     }
 
     @Override
@@ -82,8 +87,8 @@ public class LpParametersImpl implements LpParameters {
     }
 
     @Override
-    public Map<LpStringParameter, String> getStringParameters() {
-	return Maps.newHashMap(m_stringParameters);
+    public Map<LpObjectParameter, Object> getObjectParameters() {
+	return Maps.newHashMap(m_objectParameters);
     }
 
     @Override
@@ -101,10 +106,14 @@ public class LpParametersImpl implements LpParameters {
     }
 
     @Override
-    public String getValue(LpStringParameter parameter) {
+    public Object getValue(LpObjectParameter parameter) {
 	Preconditions.checkNotNull(parameter);
-	return m_stringParameters.containsKey(parameter) ? m_stringParameters.get(parameter)
-		: LpParametersDefaultValues.getDefaultStringValues().get(parameter);
+	if (m_objectParameters.containsKey(parameter)) {
+	    return m_objectParameters.get(parameter);
+	}
+	final Map<LpObjectParameter, Object> defaults = LpParametersDefaultValues.getDefaultObjectValues();
+	assert (defaults.containsKey(parameter));
+	return defaults.get(parameter);
     }
 
     @Override
@@ -120,6 +129,9 @@ public class LpParametersImpl implements LpParameters {
 	} else if (parameter instanceof LpStringParameter) {
 	    LpStringParameter stringParameter = (LpStringParameter) parameter;
 	    value = getValue(stringParameter);
+	} else if (parameter instanceof LpObjectParameter) {
+	    LpObjectParameter objectParameter = (LpObjectParameter) parameter;
+	    value = getValue(objectParameter);
 	} else {
 	    throw new IllegalArgumentException("Unknown parameter type.");
 	}
@@ -133,7 +145,7 @@ public class LpParametersImpl implements LpParameters {
 
     private boolean isDefaultValue(Object parameter, Object value) {
 	final Object defaultValue = LpParametersDefaultValues.getDefaultValueObject(parameter);
-	return Equivalences.equals().equivalent(defaultValue, value);
+	return Objects.equal(value, defaultValue);
     }
 
     @Override
@@ -153,23 +165,29 @@ public class LpParametersImpl implements LpParameters {
     }
 
     @Override
-    public boolean setValue(LpStringParameter parameter, String value) {
-	Predicate<String> validator = LpParametersUtils.getValidator(parameter);
+    public boolean setValue(LpObjectParameter parameter, Object value) {
+	Predicate<Object> validator = LpParametersUtils.getValidator(parameter);
 	Preconditions.checkArgument(validator.apply(value), "The given value: " + value
 		+ " is not meaningful for the parameter " + parameter + ".");
-	return setValue(m_stringParameters, parameter, value);
+	return setValue(m_objectParameters, parameter, value);
     }
 
-    private <IlpParameter, V> boolean setValue(final Map<IlpParameter, V> parametersMap, IlpParameter parameter, V value) {
+    private <IlpParameter, V> boolean setValue(Map<IlpParameter, V> parametersMap, IlpParameter parameter, V value) {
 	Preconditions.checkNotNull(parameter);
 	final boolean isDefault = isDefaultValue(parameter, value);
 	final boolean changed;
 	if (isDefault) {
-	    final V previous = parametersMap.remove(parameter);
-	    changed = previous != null;
+	    changed = parametersMap.containsKey(parameter);
+	    parametersMap.remove(parameter);
+	    /**
+	     * Is equivalent only if contained implies (previous != null), thus, if no null values may be stored, which
+	     * might not be guaranteed.
+	     */
+	    // final V previous = parametersMap.remove(parameter);
+	    // changed = previous != null;
 	} else {
 	    final V previous = parametersMap.put(parameter, value);
-	    changed = !Equivalences.equals().equivalent(previous, value);
+	    changed = !Objects.equal(previous, value);
 	}
 	return changed;
     }
@@ -182,17 +200,20 @@ public class LpParametersImpl implements LpParameters {
 	    LpIntParameter intParameter = (LpIntParameter) parameter;
 	    Preconditions.checkArgument(value == null || (value instanceof Integer), "Incorrect value type: " + value
 		    + ".");
-	    changed = setValue(m_intParameters, intParameter, (Integer) value);
+	    changed = setValue(intParameter, (Integer) value);
 	} else if (parameter instanceof LpDoubleParameter) {
 	    LpDoubleParameter doubleParameter = (LpDoubleParameter) parameter;
 	    Preconditions.checkArgument(value == null || (value instanceof Double), "Incorrect value type: " + value
 		    + ".");
-	    changed = setValue(m_doubleParameters, doubleParameter, (Double) value);
+	    changed = setValue(doubleParameter, (Double) value);
 	} else if (parameter instanceof LpStringParameter) {
 	    LpStringParameter stringParameter = (LpStringParameter) parameter;
 	    Preconditions.checkArgument(value == null || (value instanceof String), "Incorrect value type: " + value
 		    + ".");
-	    changed = setValue(m_stringParameters, stringParameter, (String) value);
+	    changed = setValue(stringParameter, (String) value);
+	} else if (parameter instanceof LpObjectParameter) {
+	    LpObjectParameter objectParameter = (LpObjectParameter) parameter;
+	    changed = setValue(objectParameter, value);
 	} else {
 	    throw new IllegalArgumentException("Unknown parameter type.");
 	}
@@ -202,6 +223,26 @@ public class LpParametersImpl implements LpParameters {
     @Override
     public String toString() {
 	return LpParametersUtils.toString(this);
+    }
+
+    @Override
+    public Map<LpStringParameter, String> getStringParameters() {
+	return Maps.newHashMap(m_stringParameters);
+    }
+
+    @Override
+    public String getValue(LpStringParameter parameter) {
+	Preconditions.checkNotNull(parameter);
+	return m_stringParameters.containsKey(parameter) ? m_stringParameters.get(parameter)
+		: LpParametersDefaultValues.getDefaultStringValues().get(parameter);
+    }
+
+    @Override
+    public boolean setValue(LpStringParameter parameter, String value) {
+	Predicate<String> validator = LpParametersUtils.getValidator(parameter);
+	Preconditions.checkArgument(validator.apply(value), "The given value: " + value
+		+ " is not meaningful for the parameter " + parameter + ".");
+	return setValue(m_stringParameters, parameter, value);
     }
 
 }

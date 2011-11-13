@@ -25,6 +25,7 @@ import org.decisiondeck.jlp.LpLinear;
 import org.decisiondeck.jlp.LpObjective;
 import org.decisiondeck.jlp.LpOperator;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 
 public class LpProblemForwarder<T> implements LpProblem<T> {
@@ -100,8 +101,13 @@ public class LpProblemForwarder<T> implements LpProblem<T> {
     }
 
     @Override
-    public String getVarName(T variable) {
-	return m_delegate.getVarName(variable);
+    public String getVarNameSet(T variable) {
+	return m_delegate.getVarNameSet(variable);
+    }
+
+    @Override
+    public String getVarNameComputed(T variable) {
+	return m_delegate.getVarNameComputed(variable);
     }
 
     @Override
@@ -152,6 +158,16 @@ public class LpProblemForwarder<T> implements LpProblem<T> {
     @Override
     public String toString() {
 	return m_delegate.toString();
+    }
+
+    @Override
+    public void setVarNamer(Function<T, String> namer) {
+	m_delegate.setVarNamer(namer);
+    }
+
+    @Override
+    public Function<T, String> getVarNamer() {
+	return m_delegate.getVarNamer();
     }
 
 }
