@@ -22,7 +22,9 @@ import static org.junit.Assert.assertFalse;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.Map;
 
+import org.decisiondeck.jlp.LpConstraint;
 import org.decisiondeck.jlp.LpFileFormat;
 import org.decisiondeck.jlp.LpResultStatus;
 import org.decisiondeck.jlp.LpSolver;
@@ -52,17 +54,21 @@ public class TestCplex {
 	LpSolver<String> solver = new LpSolverFactory(LpSolverType.CPLEX).newSolver(String.class);
 	solver.setProblem(problem);
 	solver.getParametersView().setValue(LpObjectParameter.NAMER_VARIABLES, getRenamer());
+
+	final Map<LpFileFormat, Function<LpConstraint<String>, String>> constraintsNamers = Maps
+		.<LpFileFormat, Function<LpConstraint<String>, String>> newHashMap();
+	constraintsNamers.put(LpFileFormat.MPS, getConstraintsNamer());
+	solver.getParametersView().setValue(LpObjectParameter.NAMER_CONSTRAINTS_BY_FORMAT, constraintsNamers);
+
 	final File temp = File.createTempFile("cplex-test", ".mps");
 	temp.deleteOnExit();
 	final String fullPath = temp.getAbsolutePath();
 	final String pathNoExt = fullPath.substring(0, fullPath.length() - 4);
-	System.out.println("Writing to " + pathNoExt + ".");
 	solver.writeProblem(LpFileFormat.MPS, pathNoExt, true);
-	System.out.println("Reading from " + temp.getAbsolutePath() + ".");
 	final String written = Files.toString(temp, Charsets.UTF_8);
 
-	final String expected = Resources.toString(getClass().getResource("OneFourThree - Renamed variables.mps"),
-		Charsets.UTF_8);
+	final String expected = Resources.toString(
+		getClass().getResource("OneFourThree - Renamed variables and constraints.mps"), Charsets.UTF_8);
 	assertEquals(expected, written);
     }
 
@@ -136,16 +142,22 @@ public class TestCplex {
 
     @Test
     // for missing javadoc.
-    public void testWriteLpRenamed() throws Exception {
+    public void testWriteLpVariablesRenamed() throws Exception {
 	final LpProblem<String> problem = LpProblemExamples.getIntOneFourThree();
 
 	LpSolver<String> solver = new LpSolverFactory(LpSolverType.CPLEX).newSolver(String.class);
 	solver.setProblem(problem);
-	final Function<String, String> renamer = getRenamer();
-	final HashMap<LpFileFormat, Function<String, String>> namers = Maps
+	final Map<LpFileFormat, Function<String, String>> variablesNamers = Maps
 		.<LpFileFormat, Function<String, String>> newHashMap();
-	namers.put(LpFileFormat.CPLEX_LP, renamer);
-	solver.getParametersView().setValue(LpObjectParameter.NAMER_VARIABLES_BY_FORMAT, namers);
+	variablesNamers.put(LpFileFormat.CPLEX_LP, getRenamer());
+	solver.getParametersView().setValue(LpObjectParameter.NAMER_VARIABLES_BY_FORMAT, variablesNamers);
+
+	/** Constraints namers for a different format => should have no effect. */
+	final Map<LpFileFormat, Function<LpConstraint<String>, String>> constraintsNamers = Maps
+		.<LpFileFormat, Function<LpConstraint<String>, String>> newHashMap();
+	constraintsNamers.put(LpFileFormat.CPLEX_SAV, getConstraintsNamer());
+	solver.getParametersView().setValue(LpObjectParameter.NAMER_CONSTRAINTS_BY_FORMAT, constraintsNamers);
+
 	final File temp = File.createTempFile("cplex-test", ".lp");
 	temp.deleteOnExit();
 	final String fullPath = temp.getAbsolutePath();
@@ -158,11 +170,11 @@ public class TestCplex {
 	assertEquals(expected, written);
     }
 
-    private Function<String, String> getRenamer() {
-	return new Function<String, String>() {
+    private Function<LpConstraint<String>, String> getConstraintsNamer() {
+	return new Function<LpConstraint<String>, String>() {
 	    @Override
-	    public String apply(String input) {
-		return "var_" + input;
+	    public String apply(LpConstraint<String> input) {
+		return "cstr_" + input.getName();
 	    }
 	};
     }
@@ -178,9 +190,7 @@ public class TestCplex {
 	temp.deleteOnExit();
 	final String fullPath = temp.getAbsolutePath();
 	final String pathNoExt = fullPath.substring(0, fullPath.length() - 4);
-	System.out.println("Writing to " + pathNoExt + ".");
 	solver.writeProblem(LpFileFormat.MPS, pathNoExt, true);
-	System.out.println("Reading from " + temp.getAbsolutePath() + ".");
 	final String written = Files.toString(temp, Charsets.UTF_8);
 
 	final String expected = Resources.toString(getClass().getResource("OneFourThree.mps"), Charsets.UTF_8);
@@ -207,6 +217,57 @@ public class TestCplex {
 	final String written = Files.toString(temp, Charsets.UTF_8);
 
 	final String expected = Resources.toString(getClass().getResource("OneFourThree.lp"), Charsets.UTF_8);
+	assertEquals(expected, written);
+    }
+
+    @Test
+    // for missing javadoc.
+    public void testWriteLpConstraintsRenamedInSolver() throws Exception {
+	final LpProblem<String> problem = LpProblemExamples.getIntOneFourThree();
+	final Function<LpConstraint<String>, String> namer = getConstraintsNamer();
+
+	LpSolver<String> solver = new LpSolverFactory(LpSolverType.CPLEX).newSolver(String.class);
+	solver.setProblem(problem);
+	solver.getParametersView().setValue(LpObjectParameter.NAMER_CONSTRAINTS, namer);
+	final File temp = File.createTempFile("cplex-test", ".lp");
+	temp.deleteOnExit();
+	final String fullPath = temp.getAbsolutePath();
+	final String pathNoExt = fullPath.substring(0, fullPath.length() - 3);
+	solver.writeProblem(LpFileFormat.CPLEX_LP, pathNoExt, true);
+	final String written = Files.toString(temp, Charsets.UTF_8);
+
+	final String expected = Resources.toString(getClass().getResource("OneFourThree - Renamed constraints.lp"),
+		Charsets.UTF_8);
+	assertEquals(expected, written);
+    }
+
+    private Function<String, String> getRenamer() {
+	return new Function<String, String>() {
+	    @Override
+	    public String apply(String input) {
+		return "var_" + input;
+	    }
+	};
+    }
+
+    @Test
+    // for missing javadoc.
+    public void testWriteLpConstraintsRenamedInProblem() throws Exception {
+	final LpProblem<String> problem = LpProblemExamples.getIntOneFourThree();
+	final Function<LpConstraint<String>, String> namer = getConstraintsNamer();
+	problem.setConstraintsNamer(namer);
+
+	LpSolver<String> solver = new LpSolverFactory(LpSolverType.CPLEX).newSolver(String.class);
+	solver.setProblem(problem);
+	final File temp = File.createTempFile("cplex-test", ".lp");
+	temp.deleteOnExit();
+	final String fullPath = temp.getAbsolutePath();
+	final String pathNoExt = fullPath.substring(0, fullPath.length() - 3);
+	solver.writeProblem(LpFileFormat.CPLEX_LP, pathNoExt, true);
+	final String written = Files.toString(temp, Charsets.UTF_8);
+
+	final String expected = Resources.toString(getClass().getResource("OneFourThree - Renamed constraints.lp"),
+		Charsets.UTF_8);
 	assertEquals(expected, written);
     }
 

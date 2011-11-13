@@ -160,6 +160,8 @@ public class LpParametersDefaultValues {
 	    s_objects = Maps.newHashMap();
 	    s_objects.put(LpObjectParameter.NAMER_VARIABLES, null);
 	    s_objects.put(LpObjectParameter.NAMER_VARIABLES_BY_FORMAT, null);
+	    s_objects.put(LpObjectParameter.NAMER_CONSTRAINTS, null);
+	    s_objects.put(LpObjectParameter.NAMER_CONSTRAINTS_BY_FORMAT, null);
 	    s_objects = Collections.unmodifiableMap(s_objects);
 
 	    assert (s_doubles.size() == LpDoubleParameter.values().length);

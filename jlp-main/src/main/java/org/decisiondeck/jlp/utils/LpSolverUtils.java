@@ -188,6 +188,7 @@ public class LpSolverUtils {
 	    target.add(constraint);
 	}
 	target.setVarNamer(source.getVarNamer());
+	target.setConstraintsNamer(source.getConstraintsNamer());
 	return true;
     }
 

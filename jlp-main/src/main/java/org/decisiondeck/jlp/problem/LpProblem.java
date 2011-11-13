@@ -79,8 +79,8 @@ public interface LpProblem<T> {
      * Adds a constraint, or does nothing if the given constraint is already in the problem. The variables used in the
      * objective must have been added to this problem already.
      * 
-     * @param name
-     *            the name of the constraint. If <code>null</code> or empty, a no-name constraint is used.
+     * @param id
+     *            the id of the constraint. If <code>null</code>, a no-id constraint is used.
      * @param lhs
      *            the left-hand-side linear expression. Not <code>null</code>.
      * @param operator
@@ -90,7 +90,7 @@ public interface LpProblem<T> {
      * @return <code>true</code> iff the call modified the state of this object. Equivalently, returns
      *         <code>false</code> iff the given constraint already was in the problem.
      */
-    public boolean add(String name, LpLinear<T> lhs, LpOperator operator, double rhs);
+    public boolean add(Object id, LpLinear<T> lhs, LpOperator operator, double rhs);
 
     /**
      * Adds the variable to this problem if it is not already in with a default type of REAL, no name, no lower and
@@ -181,24 +181,32 @@ public interface LpProblem<T> {
 
     /**
      * <p>
-     * Sets the namer function that is used to associate names to variables. If the namer is <code>null</code> (the
-     * default), this object uses the names associated to the variables using {@link #setVarName} to compute the
-     * variable names.
+     * Sets the namer function that is used to associate names to constraints. If the given namer is <code>null</code>,
+     * the namer function is set back to the default function. If the given namer sometimes returns <code>null</code>
+     * values, it is transformed to return empty strings instead so that the resulting function never returns
+     * <code>null</code>. The function is never given a <code>null</code> constraint; however the constraint id may be
+     * <code>null</code>.
      * </p>
      * <p>
-     * An example function that can be used is available through {@link LpProblemUtils#getToStringFunction()}.
-     * </p>
-     * <p>
-     * TODO make the tostring function the default; remove manual var names; add wrapper to set the var names through a
-     * dedicated namer function (if useful).
+     * The default namer uses the names deduced from the ids associated to the constraints, using
+     * {@link LpConstraint#getName()}. In such a case, a constraint has no name iff it has no id.
      * </p>
      * 
      * @param namer
-     *            <code>null</code> to default to the names set with {@link #setVarName}.
-     * @see #getVarNameComputed
-     * @see LpObjectParameter#NAMER_VARIABLES
+     *            <code>null</code> to reset default behavior.
+     * @see #getConstraintsNamer()
+     * @see LpObjectParameter#NAMER_CONSTRAINTS
      */
-    public void setVarNamer(Function<T, String> namer);
+    public void setConstraintsNamer(Function<LpConstraint<T>, String> namer);
+
+    /**
+     * Retrieves the function used to name the constraints. The function returns an empty string for an unnamed
+     * constraint and is guaranteed to never return <code>null</code>.
+     * 
+     * @return not <code>null</code>.
+     * @see #setConstraintsNamer(Function)
+     */
+    public Function<LpConstraint<T>, String> getConstraintsNamer();
 
     /**
      * Retrieves the type of a variable.
@@ -295,4 +303,25 @@ public interface LpProblem<T> {
     public boolean setVarType(T variable, LpVariableType type);
 
     public Function<T, String> getVarNamer();
+
+    /**
+     * <p>
+     * Sets the namer function that is used to associate names to variables. If the namer is <code>null</code> (the
+     * default), this object uses the names associated to the variables using {@link #setVarName} to compute the
+     * variable names.
+     * </p>
+     * <p>
+     * An example function that can be used is available through {@link LpProblemUtils#getToStringFunction()}.
+     * </p>
+     * <p>
+     * TODO make the tostring function the default; remove manual var names; add wrapper to set the var names through a
+     * dedicated namer function (if useful).
+     * </p>
+     * 
+     * @param namer
+     *            <code>null</code> to default to the names set with {@link #setVarName}.
+     * @see #getVarNameComputed
+     * @see LpObjectParameter#NAMER_VARIABLES
+     */
+    public void setVarNamer(Function<T, String> namer);
 }

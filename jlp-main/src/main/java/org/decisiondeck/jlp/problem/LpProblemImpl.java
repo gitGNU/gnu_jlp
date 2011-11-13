@@ -32,6 +32,7 @@ import org.decisiondeck.jlp.utils.LpSolverUtils;
 
 import com.google.common.base.Equivalences;
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.EnumMultiset;
@@ -49,6 +50,32 @@ import com.google.common.collect.Sets;
  * 
  */
 public class LpProblemImpl<T> implements LpProblem<T> {
+
+    static private class DefaultConstraintNamer<T> implements Function<LpConstraint<T>, String> {
+	public DefaultConstraintNamer() {
+	    /** Public default constructor. */
+	}
+
+	@Override
+	public String apply(LpConstraint<T> input) {
+	    return input.getName();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+	    return obj != null && obj instanceof DefaultConstraintNamer<?>;
+	}
+
+	@Override
+	public String toString() {
+	    return "Constraint namer from internal constraint name";
+	}
+
+	@Override
+	public int hashCode() {
+	    return 1555;
+	}
+    }
 
     private final Set<LpConstraint<T>> m_constraints = Sets.newLinkedHashSet();
 
@@ -78,11 +105,14 @@ public class LpProblemImpl<T> implements LpProblem<T> {
 
     private Function<T, String> m_namer;
 
+    private Function<LpConstraint<T>, String> m_constraintNamer;
+
     public LpProblemImpl() {
 	m_name = "";
 	m_objectiveFunction = null;
 	m_optType = null;
 	m_namer = null;
+	setConstraintsNamer(null);
     }
 
     /**
@@ -102,11 +132,11 @@ public class LpProblemImpl<T> implements LpProblem<T> {
     }
 
     @Override
-    public boolean add(String name, LpLinear<T> lhs, LpOperator operator, double rhs) {
+    public boolean add(Object id, LpLinear<T> lhs, LpOperator operator, double rhs) {
 	Preconditions.checkNotNull(lhs, "" + operator + rhs);
 	Preconditions.checkNotNull(operator, "" + lhs + rhs);
 	Preconditions.checkArgument(!Double.isNaN(rhs) && !Double.isInfinite(rhs));
-	LpConstraint<T> constraint = new LpConstraint<T>(name, lhs, operator, rhs);
+	LpConstraint<T> constraint = new LpConstraint<T>(id, lhs, operator, rhs);
 	return addInternal(constraint);
     }
 
@@ -354,6 +384,26 @@ public class LpProblemImpl<T> implements LpProblem<T> {
     @Override
     public Function<T, String> getVarNamer() {
 	return m_namer;
+    }
+
+    @Override
+    public void setConstraintsNamer(Function<LpConstraint<T>, String> namer) {
+	if (namer == null) {
+	    m_constraintNamer = new DefaultConstraintNamer<T>();
+	} else {
+	    final Function<String, String> nullToEmptyString = new Function<String, String>() {
+		@Override
+		public String apply(String input) {
+		    return Strings.nullToEmpty(input);
+		}
+	    };
+	    m_constraintNamer = Functions.compose(nullToEmptyString, namer);
+	}
+    }
+
+    @Override
+    public Function<LpConstraint<T>, String> getConstraintsNamer() {
+	return m_constraintNamer;
     }
 
 }

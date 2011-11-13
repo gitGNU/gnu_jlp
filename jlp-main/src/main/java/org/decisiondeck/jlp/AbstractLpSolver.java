@@ -246,41 +246,41 @@ public abstract class AbstractLpSolver<T> implements LpSolver<T> {
     }
 
     /**
-     * Retrieves the name that should be used for a variable according to the specified export format. This method uses
-     * the appropriate naming function if it is set.
+     * Retrieves the name that should be used for a constraint according to the specified export format. This method
+     * uses the appropriate naming function if it is set.
      * 
-     * @param variable
+     * @param constraint
      *            not <code>null</code>.
      * @param format
      *            not <code>null</code>.
      * @return not <code>null</code>, empty string for no name.
      */
-    public String getVariableName(T variable, LpFileFormat format) {
-	Preconditions.checkNotNull(variable);
+    public String getConstraintName(LpConstraint<T> constraint, LpFileFormat format) {
+	Preconditions.checkNotNull(constraint);
 	Preconditions.checkNotNull(format);
 
-	final Map<?, ?> namers = (Map<?, ?>) getParameter(LpObjectParameter.NAMER_VARIABLES_BY_FORMAT);
+	final Map<?, ?> namers = (Map<?, ?>) getParameter(LpObjectParameter.NAMER_CONSTRAINTS_BY_FORMAT);
 	if (namers == null || !namers.containsKey(format)) {
-	    return getVariableName(variable);
+	    return getConstraintName(constraint);
 	}
 	final Object namerObj = namers.get(format);
 	if (!(namerObj instanceof Function)) {
-	    throw new ClassCastException("Illegal variable namer '" + namerObj + "', namers should be functions.");
+	    throw new ClassCastException("Illegal constraint namer '" + namerObj + "', namers should be functions.");
 	}
 	final Function<?, ?> namer = (Function<?, ?>) namerObj;
 
-	return getVariableName(variable, namer);
+	return getConstraintName(constraint, namer);
     }
 
-    private String getVariableName(T variable, Function<?, ?> namer) {
+    private String getConstraintName(LpConstraint<T> constraint, Function<?, ?> namer) {
 	@SuppressWarnings("unchecked")
-	final Function<T, ?> namerTyped = (Function<T, ?>) namer;
-	final Object named = namerTyped.apply(variable);
+	final Function<LpConstraint<T>, ?> namerTyped = (Function<LpConstraint<T>, ?>) namer;
+	final Object named = namerTyped.apply(constraint);
 	if (named == null) {
 	    return "";
 	}
 	if (!(named instanceof String)) {
-	    throw new ClassCastException("Illegal variable name '" + named
+	    throw new ClassCastException("Illegal constraint name '" + named
 		    + "', namer should only return strings or nulls.");
 	}
 	final String name = (String) named;
@@ -364,6 +364,65 @@ public abstract class AbstractLpSolver<T> implements LpSolver<T> {
 	if (namer == null) {
 	    return getProblem().getVarNameComputed(variable);
 	}
+
+	return getVariableName(variable, namer);
+    }
+
+    /**
+     * Retrieves the name of the constraint, using the appropriate namer function if it is set.
+     * 
+     * @param constraint
+     *            not <code>null</code>.
+     * 
+     * @return never <code>null</code>, empty if no id is set.
+     */
+    public String getConstraintName(LpConstraint<T> constraint) {
+	Preconditions.checkNotNull(constraint);
+
+	final Function<?, ?> namer = (Function<?, ?>) getParameter(LpObjectParameter.NAMER_CONSTRAINTS);
+	final Function<?, ?> realNamer = namer == null ? getProblem().getConstraintsNamer() : namer;
+
+	return getConstraintName(constraint, realNamer);
+    }
+
+    private String getVariableName(T variable, Function<?, ?> namer) {
+	@SuppressWarnings("unchecked")
+	final Function<T, ?> namerTyped = (Function<T, ?>) namer;
+	final Object named = namerTyped.apply(variable);
+	if (named == null) {
+	    return "";
+	}
+	if (!(named instanceof String)) {
+	    throw new ClassCastException("Illegal variable name '" + named
+		    + "', namer should only return strings or nulls.");
+	}
+	final String name = (String) named;
+	return name;
+    }
+
+    /**
+     * Retrieves the name that should be used for a variable according to the specified export format. This method uses
+     * the appropriate naming function if it is set.
+     * 
+     * @param variable
+     *            not <code>null</code>.
+     * @param format
+     *            not <code>null</code>.
+     * @return not <code>null</code>, empty string for no name.
+     */
+    public String getVariableName(T variable, LpFileFormat format) {
+	Preconditions.checkNotNull(variable);
+	Preconditions.checkNotNull(format);
+
+	final Map<?, ?> namers = (Map<?, ?>) getParameter(LpObjectParameter.NAMER_VARIABLES_BY_FORMAT);
+	if (namers == null || !namers.containsKey(format)) {
+	    return getVariableName(variable);
+	}
+	final Object namerObj = namers.get(format);
+	if (!(namerObj instanceof Function)) {
+	    throw new ClassCastException("Illegal variable namer '" + namerObj + "', namers should be functions.");
+	}
+	final Function<?, ?> namer = (Function<?, ?>) namerObj;
 
 	return getVariableName(variable, namer);
     }

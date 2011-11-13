@@ -28,15 +28,20 @@ import com.google.common.base.Preconditions;
  * between.
  * </p>
  * <p>
- * Such a constraint may have a name that may be used to describe it, e.g. when writing a mathematical problem to a
- * file.
+ * Such a constraint may have a id that may be used to describe or identify it, e.g. its string form will be used when
+ * writing a mathematical problem to a file. Although this object will accept any id, when dealing with several
+ * constraints, it is strongly recommanded to either use <code>null</code> ids (thus to not use ids) or to use unique
+ * ids each identifying with no ambiguity one constraint, as objects using these constraints might rely on their ids
+ * being truly unique identifiers. Thus, it is suggested to ensure that the following relation holds on a set of
+ * constraints C: for any two constraints c1, c2 in C whose ids are both non <code>null</code>, c1 id must
+ * {@link #equals} c2 id if and only if c1 {@link #equals} c2.
  * </p>
  * <p>
  * This class is immutable.
  * </p>
  * <p>
  * A constraint {@link #equals(Object)} an other constraint iff they have the same left hand side, operator, and right
- * hand side. The name is not considered.
+ * hand side. The id is not considered.
  * </p>
  * 
  * @author Olivier Cailloux
@@ -48,17 +53,17 @@ public class LpConstraint<T> {
     private final LpLinearImmutable<T> m_lhs;
 
     /**
-     * Never <code>null</code>, empty if not set.
+     * <code>null</code> if not set.
      */
-    private final String m_name;
+    private final Object m_id;
 
     private final LpOperator m_op;
 
     private final double m_rhs;
 
     /**
-     * @param name
-     *            <code>null</code> or empty for no name.
+     * @param id
+     *            <code>null</code> for no id.
      * @param lhs
      *            not <code>null</code>, not empty.
      * @param op
@@ -66,13 +71,13 @@ public class LpConstraint<T> {
      * @param rhs
      *            a valid number (not infinite, not NaN).
      */
-    public LpConstraint(String name, LpLinear<T> lhs, LpOperator op, double rhs) {
+    public LpConstraint(Object id, LpLinear<T> lhs, LpOperator op, double rhs) {
 	Preconditions.checkNotNull(lhs);
 	Preconditions.checkNotNull(op);
 	Preconditions.checkArgument(!Double.isInfinite(rhs));
 	Preconditions.checkArgument(!Double.isNaN(rhs));
 	Preconditions.checkArgument(lhs.size() >= 1);
-	m_name = name == null ? "" : name;
+	m_id = id == null ? "" : id;
 	m_lhs = new LpLinearImmutable<T>(lhs);
 	m_op = op;
 	m_rhs = rhs;
@@ -95,12 +100,12 @@ public class LpConstraint<T> {
     }
 
     /**
-     * Retrieves the name of the problem.
+     * Retrieves the constraint id, if it is set.
      * 
-     * @return never <code>null</code>, empty if not set.
+     * @return <code>null</code> if not set.
      */
-    public String getName() {
-	return m_name;
+    public Object getId() {
+	return m_id;
     }
 
     /**
@@ -125,5 +130,15 @@ public class LpConstraint<T> {
     @Override
     public String toString() {
 	return LpSolverUtils.getAsString(this);
+    }
+
+    /**
+     * Retrieves the name of the constraint. This is the string form of its id, as per {@link #toString()}, or the empty
+     * string if no id is set.
+     * 
+     * @return never <code>null</code>, empty if no id is set.
+     */
+    public String getName() {
+	return m_id == null ? "" : m_id.toString();
     }
 }

@@ -36,7 +36,12 @@ public class LpProblemReadView<T> extends LpProblemForwarder<T> implements LpPro
     }
 
     @Override
-    public boolean add(String name, LpLinear<T> lhs, LpOperator operator, double rhs) {
+    public boolean add(Object id, LpLinear<T> lhs, LpOperator operator, double rhs) {
+	throw new UnsupportedOperationException("This object is a read-only view.");
+    }
+
+    @Override
+    public void setConstraintsNamer(Function<LpConstraint<T>, String> namer) {
 	throw new UnsupportedOperationException("This object is a read-only view.");
     }
 

@@ -80,12 +80,15 @@ public class SolverCPLEX<T> extends AbstractLpSolver<T> {
 
     private BiMap<T, IloNumVar> m_variablesToCplex;
 
+    private LpFileFormat m_currentFormat;
+
     /**
      * Creates a new solver instance.
      */
     public SolverCPLEX() {
 	m_cplex = null;
 	m_variablesToCplex = null;
+	m_currentFormat = null;
     }
 
     @Override
@@ -97,9 +100,9 @@ public class SolverCPLEX<T> extends AbstractLpSolver<T> {
     }
 
     private void exportModel(String file, LpFileFormat format) throws LpSolverException {
+	m_currentFormat = format;
 	lazyInit();
 	try {
-	    setVariableNames(format);
 	    m_cplex.exportModel(file);
 	} catch (IloException exc) {
 	    throw new LpSolverException(exc);
@@ -111,7 +114,7 @@ public class SolverCPLEX<T> extends AbstractLpSolver<T> {
 	}
     }
 
-    private void setVariableNames(LpFileFormat format) {
+    void setVariableNames(LpFileFormat format) {
 	final Set<T> variables = m_variablesToCplex.keySet();
 	for (T variable : variables) {
 	    final IloNumVar cplexVar = m_variablesToCplex.get(variable);
@@ -191,8 +194,8 @@ public class SolverCPLEX<T> extends AbstractLpSolver<T> {
 
     @Override
     public Object getUnderlyingSolver() throws LpSolverException {
+	m_currentFormat = null;
 	lazyInit();
-	// setVariableNames(null);
 	return m_cplex;
     }
 
@@ -219,15 +222,17 @@ public class SolverCPLEX<T> extends AbstractLpSolver<T> {
 
 		final double rhs = constraint.getRhs();
 
+		final String constraintName = m_currentFormat == null ? getConstraintName(constraint)
+			: getConstraintName(constraint, m_currentFormat);
 		switch (constraint.getOperator()) {
 		case EQ:
-		    m_cplex.addEq(lin, rhs, constraint.getName());
+		    m_cplex.addEq(lin, rhs, constraintName);
 		    break;
 		case GE:
-		    m_cplex.addGe(lin, rhs, constraint.getName());
+		    m_cplex.addGe(lin, rhs, constraintName);
 		    break;
 		case LE:
-		    m_cplex.addLe(lin, rhs, constraint.getName());
+		    m_cplex.addLe(lin, rhs, constraintName);
 		    break;
 		}
 		s_logger.debug("Set constraint {}.", constraint);
@@ -469,7 +474,8 @@ public class SolverCPLEX<T> extends AbstractLpSolver<T> {
     private void setVariables() throws IloException {
 	final Builder<T, IloNumVar> variablesToCplexBuilder = ImmutableBiMap.builder();
 	for (T variable : getProblem().getVariables()) {
-	    final String varName = getVariableName(variable);
+	    final String varName = m_currentFormat == null ? getVariableName(variable) : getVariableName(variable,
+		    m_currentFormat);
 	    LpVariableType varType = getProblem().getVarType(variable);
 	    Number lowerBound = LpSolverUtils.getVarLowerBoundBounded(getProblem(), variable);
 	    Number upperBound = LpSolverUtils.getVarUpperBoundBounded(getProblem(), variable);
@@ -505,8 +511,8 @@ public class SolverCPLEX<T> extends AbstractLpSolver<T> {
 
     @Override
     protected LpResultStatus solveUnderlying() throws LpSolverException {
+	m_currentFormat = null;
 	lazyInit();
-	// setVariableNames(null);
 
 	try {
 	    final LpTimingType timingType = getPreferredTimingType();

@@ -47,8 +47,8 @@ public class LpProblemForwarder<T> implements LpProblem<T> {
     }
 
     @Override
-    public boolean add(String name, LpLinear<T> lhs, LpOperator operator, double rhs) {
-	return m_delegate.add(name, lhs, operator, rhs);
+    public boolean add(Object id, LpLinear<T> lhs, LpOperator operator, double rhs) {
+	return m_delegate.add(id, lhs, operator, rhs);
     }
 
     @Override
@@ -168,6 +168,16 @@ public class LpProblemForwarder<T> implements LpProblem<T> {
     @Override
     public Function<T, String> getVarNamer() {
 	return m_delegate.getVarNamer();
+    }
+
+    @Override
+    public void setConstraintsNamer(Function<LpConstraint<T>, String> namer) {
+	m_delegate.setConstraintsNamer(namer);
+    }
+
+    @Override
+    public Function<LpConstraint<T>, String> getConstraintsNamer() {
+	return m_delegate.getConstraintsNamer();
     }
 
 }

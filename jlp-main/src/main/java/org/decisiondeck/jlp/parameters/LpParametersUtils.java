@@ -66,6 +66,8 @@ public class LpParametersUtils {
 	nullValues.put(LpStringParameter.WORK_DIR, null);
 	nullValues.put(LpObjectParameter.NAMER_VARIABLES, null);
 	nullValues.put(LpObjectParameter.NAMER_VARIABLES_BY_FORMAT, null);
+	nullValues.put(LpObjectParameter.NAMER_CONSTRAINTS, null);
+	nullValues.put(LpObjectParameter.NAMER_CONSTRAINTS_BY_FORMAT, null);
 	return nullValues;
     }
 
@@ -210,7 +212,21 @@ public class LpParametersUtils {
 		    return value == null || value instanceof Function<?, ?>;
 		}
 	    };
+	case NAMER_CONSTRAINTS:
+	    return new Predicate<Object>() {
+		@Override
+		public boolean apply(Object value) {
+		    return value == null || value instanceof Function<?, ?>;
+		}
+	    };
 	case NAMER_VARIABLES_BY_FORMAT:
+	    return new Predicate<Object>() {
+		@Override
+		public boolean apply(Object value) {
+		    return value == null || value instanceof Map<?, ?>;
+		}
+	    };
+	case NAMER_CONSTRAINTS_BY_FORMAT:
 	    return new Predicate<Object>() {
 		@Override
 		public boolean apply(Object value) {
